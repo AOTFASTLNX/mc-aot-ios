@@ -286,7 +286,7 @@ static CGFloat FAOTEvaluateExpression(NSString *expression, NSDictionary<NSStrin
         id keycodes = entry[@"keycodes"] ?: entry[@"mKeycodes"];
         NSInteger code = 0;
         if ([keycodes isKindOfClass:NSArray.class] && [keycodes count] > 0) {
-            id first = keycodes.firstObject;
+            id first = [(NSArray *)keycodes firstObject];
             code = [first isKindOfClass:NSNumber.class] ? [first integerValue] : FAOTKeycodeFromPojavName([first description]);
         } else if (entry[@"keycode"] || entry[@"mKeycode"]) {
             id single = entry[@"keycode"] ?: entry[@"mKeycode"];
