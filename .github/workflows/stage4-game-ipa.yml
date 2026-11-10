@@ -1,4 +1,4 @@
-name: stage4-game-ipa
+﻿name: stage4-game-ipa
 
 on:
   workflow_dispatch:
@@ -230,7 +230,8 @@ jobs:
         if: failure()
         run: |
           set +e
-          find src/artifacts -name 'stderr.log' -size +0 | head -6 | while read f; do echo "-- $f"; tail -30 "$f"; done
+          for f in $(find src/artifacts/graphics src/artifacts/ci -name 'stderr.log' -size +0 | head -8); do echo "-- $f"; tail -30 "$f"; done
+          for f in $(find src/artifacts/graphics src/artifacts/ci -name 'result.json' | head -6); do echo "-- $f"; head -c 1500 "$f"; echo; done
           find src/artifacts -name 'stdout.log' -size +0 | head -4 | while read f; do echo "-- $f"; tail -20 "$f"; done
           df -h /
 
@@ -244,3 +245,4 @@ jobs:
             src/artifacts/ci
           retention-days: 3
           if-no-files-found: ignore
+
