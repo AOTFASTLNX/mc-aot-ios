@@ -1,4 +1,4 @@
-name: stage4-game-ipa
+﻿name: stage4-game-ipa
 
 on:
   workflow_dispatch:
@@ -245,9 +245,11 @@ jobs:
         with:
           name: build-logs
           path: |
-            src/artifacts/graphics
-            src/artifacts/ci
+            src/artifacts/**/result.json
+            src/artifacts/**/stderr.log
+            src/artifacts/**/stdout.log
           retention-days: 3
           if-no-files-found: ignore
+
 
 
