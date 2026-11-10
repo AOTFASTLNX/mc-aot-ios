@@ -67,6 +67,12 @@ jobs:
           time python3 -B tools/build_glfw_lite.py --sdk iphoneos --output artifacts/graphics/glfw-ios-world-01 --test-host
           python3 -c "import json;d=json.load(open('artifacts/graphics/glfw-ios-world-01/result.json'));print(d['status'],d['binarySHA256'][:16])"
 
+      - name: Pinned STB headers
+        run: |
+          set -euo pipefail
+          cd src
+          python3 -B tools/fetch_stb.py
+
       - name: LWJGL-lite
         run: |
           set -euo pipefail
