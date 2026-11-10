@@ -1,0 +1,52 @@
+name: probe
+
+on:
+  workflow_dispatch:
+    inputs:
+      note:
+        description: free-form note
+        required: false
+
+jobs:
+  probe:
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Runner facts
+        run: |
+          echo "== os =="; sw_vers; uname -m
+          echo "== cpu/mem =="; sysctl -n hw.ncpu; sysctl -n hw.memsize | awk '{printf "%.1f GiB\n", $1/1073741824}'
+          echo "== disk =="; df -h /
+          echo "== xcode =="; xcode-select -p; xcodebuild -version
+          echo "== sdk =="; xcrun --sdk iphoneos --show-sdk-version; xcrun --sdk iphonesimulator --show-sdk-version
+          echo "== sim runtimes =="; xcrun simctl list runtimes | sed -n '1,12p'
+          echo "== python =="; python3 --version
+          echo "== java =="; /usr/libexec/java_home -V 2>&1 | sed -n '1,8p'
+          echo "== metal toolchain =="; xcrun -f metal 2>&1 || true; xcrun metal --version 2>&1 | head -3 || true
+          echo "== clang =="; clang --version | head -2
+
+      - name: Network reachability
+        run: |
+          for u in https://github.com https://objects.githubusercontent.com https://raw.githubusercontent.com https://piston-meta.mojang.com https://piston-data.mojang.com https://libraries.minecraft.net https://resources.download.minecraft.net https://repo1.maven.org/maven2/ https://api.adoptium.net; do
+            code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 "$u")
+            echo "$code  $u"
+          done
+          echo "== graalvm release asset =="
+          curl -sIL --max-time 30 "https://github.com/graalvm/graalvm-ce-builds/releases/download/jdk-25.0.2/graalvm-community-jdk-25.0.2_macos-aarch64_bin.tar.gz" | awk 'BEGIN{IGNORECASE=1} /^content-length|^HTTP/' | tail -4
+
+      - name: Clone upstream and inspect
+        env:
+          MCFAO_TOKEN: ${{ secrets.MCFAO_TOKEN }}
+        run: |
+          set -euo pipefail
+          git clone --depth 1 "https://x-access-token:${MCFAO_TOKEN}@github.com/kexinOvO/MCFAO.git" src
+          cd src
+          echo "commit: $(git rev-parse --short HEAD)  date: $(git log -1 --format=%cI)"
+          du -sh .
+          ls
+          echo "py files: $(find . -name '*.py' | wc -l)"
+          python3 --version
+          echo "== mcfao doctor help =="
+          python3 -B tools/mcfao.py doctor --help 2>&1 | head -25 || true
