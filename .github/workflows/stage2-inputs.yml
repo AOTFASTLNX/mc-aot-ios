@@ -32,6 +32,14 @@ jobs:
           xcode-select -p
           xcrun --sdk iphoneos --show-sdk-version
 
+      - name: Autotools for the OpenJDK configure step
+        run: |
+          set -euo pipefail
+          brew install -q autoconf automake make
+          command -v autoconf; autoconf --version | head -1
+          echo "/opt/homebrew/opt/make/libexec/gnubin" >> "$GITHUB_PATH"
+          command -v zip unzip file
+
       - name: Cache pinned toolchains
         uses: actions/cache@v4
         with:
