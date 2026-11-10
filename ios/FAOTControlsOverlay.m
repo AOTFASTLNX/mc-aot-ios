@@ -198,6 +198,7 @@
 #pragma mark - Button view
 
 @implementation FAOTControlButtonView
+@synthesize held = _held;
 
 - (void)applyModel {
     FAOTControlModel *model = self.model;

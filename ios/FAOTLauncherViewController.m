@@ -24,13 +24,13 @@ NSString *FAOTPojavDefaultLayoutJSON(void) {
         {"Opti-Zoom", 'C', "${margin} * 5 + ${width} * 4", "${margin}", 80, 30},
         {"Offhand", 'F', "${margin} * 6 + ${width} * 5", "${margin}", 80, 30},
         {"3rd", 294 /* F5 */, "${margin}", "${margin} * 2 + ${height}", 80, 30},
-        {"▲", 'W', "${margin} * 2 + ${width}", "${bottom} - ${margin} * 3 - ${height} * 2", 50, 50},
+        {"�?, 'W', "${margin} * 2 + ${width}", "${bottom} - ${margin} * 3 - ${height} * 2", 50, 50},
         {"◀", 'A', "${margin}", "${bottom} - ${margin} * 2 - ${height}", 50, 50},
-        {"▼", 'S', "${margin} * 2 + ${width}", "${bottom} - ${margin}", 50, 50},
-        {"▶", 'D', "${margin} * 3 + ${width} * 2", "${bottom} - ${margin} * 2 - ${height}", 50, 50},
+        {"�?, 'S', "${margin} * 2 + ${width}", "${bottom} - ${margin}", 50, 50},
+        {"�?, 'D', "${margin} * 3 + ${width} * 2", "${bottom} - ${margin} * 2 - ${height}", 50, 50},
         {"Inv", 'E', "${margin} * 3 + ${width} * 2", "${bottom} - ${margin}", 50, 50},
-        {"◇", 340 /* left shift */, "${margin} * 2 + ${width}", "${screen_height} - ${margin} * 2 - ${height} * 2", 50, 50},
-        {"⬛", 32 /* space */, "${right} - ${margin} * 2 - ${width}", "${bottom} - ${margin} * 2 - ${height}", 50, 50},
+        {"�?, 340 /* left shift */, "${margin} * 2 + ${width}", "${screen_height} - ${margin} * 2 - ${height} * 2", 50, 50},
+        {"�?, 32 /* space */, "${right} - ${margin} * 2 - ${width}", "${bottom} - ${margin} * 2 - ${height}", 50, 50},
         {"Esc", 256, "${right} - ${margin}", "${bottom} - ${margin}", 80, 30},
     };
     NSMutableArray *list = [NSMutableArray array];
@@ -96,13 +96,13 @@ NSString *FAOTPojavDefaultLayoutJSON(void) {
     title.textColor = UIColor.whiteColor;
 
     UILabel *subtitle = [UILabel new];
-    subtitle.text = @"Minecraft Java 26.1.2 · Java 25 · iOS 原生 AOT（无需 JIT）";
+    subtitle.text = @"Minecraft Java 26.1.2 · Java 25 · iOS 原生 AOT（无需 JIT�?;
     subtitle.font = [UIFont systemFontOfSize:13 weight:UIFontWeightRegular];
     subtitle.textColor = [UIColor colorWithWhite:1.0 alpha:0.6];
     subtitle.numberOfLines = 0;
 
     self.nameField = [UITextField new];
-    self.nameField.borderStyle = UITextFieldBorderStyleNone;
+    self.nameField.borderStyle = UITextBorderStyleNone;
     self.nameField.backgroundColor = [UIColor colorWithWhite:1.0 alpha:0.08];
     self.nameField.textColor = UIColor.whiteColor;
     self.nameField.tintColor = UIColor.systemGreenColor;
@@ -112,7 +112,7 @@ NSString *FAOTPojavDefaultLayoutJSON(void) {
     self.nameField.returnKeyType = UIReturnKeyDone;
     self.nameField.leftView = [[UIView alloc] initWithFrame:CGRectMake(0, 0, 12, 1)];
     self.nameField.leftViewMode = UITextFieldViewModeAlways;
-    self.nameField.placeholder = @"玩家名";
+    self.nameField.placeholder = @"玩家�?;
 
     UILabel *memoryCaption = [UILabel new];
     memoryCaption.text = @"内存上限";
@@ -143,9 +143,9 @@ NSString *FAOTPojavDefaultLayoutJSON(void) {
     self.statusLabel.font = [UIFont monospacedSystemFontOfSize:11 weight:UIFontWeightRegular];
     self.statusLabel.textColor = [UIColor colorWithWhite:1.0 alpha:0.5];
     self.statusLabel.numberOfLines = 0;
-    self.statusLabel.text = @"控件布局来自 Pojav 的 mControlDataList，可直接编辑或替换。";
+    self.statusLabel.text = @"控件布局来自 Pojav �?mControlDataList，可直接编辑或替换�?;
 
-    UIButton *diagnostics = [self pillButton:@"诊断 / 旧版启动页" action:@selector(diagnosticsTapped)];
+    UIButton *diagnostics = [self pillButton:@"诊断 / 旧版启动�? action:@selector(diagnosticsTapped)];
 
     self.card = [UIView new];
     self.card.backgroundColor = [UIColor colorWithWhite:1.0 alpha:0.05];
@@ -235,14 +235,14 @@ NSString *FAOTPojavDefaultLayoutJSON(void) {
     self.layoutName = [defaults stringForKey:FAOTControlLayoutDefaultsKey];
     if (self.layoutName.length == 0) self.layoutName = @"default";
     FAOTControlLayout *layout = [FAOTLauncherViewController activeLayout];
-    self.layoutLabel.text = [NSString stringWithFormat:@"控件布局：%@（%lu 个按键）",
+    self.layoutLabel.text = [NSString stringWithFormat:@"控件布局�?@�?lu 个按键）",
                              self.layoutName, (unsigned long)layout.controls.count];
 }
 
 - (void)persistSettings {
     NSUserDefaults *defaults = FAOTLauncherViewController.defaults;
     [defaults setObject:(self.nameField.text.length ? self.nameField.text : @"Dev") forKey:FAOTPlayerNameDefaultsKey];
-    NSInteger memory = @[@1, @2, @4, @6][self.memoryPicker.selectedSegmentIndex].integerValue;
+    NSInteger memory = ((NSNumber *)@[@1, @2, @4, @6][self.memoryPicker.selectedSegmentIndex]).integerValue;
     [defaults setInteger:memory forKey:FAOTMemoryGiBDefaultsKey];
     [defaults setObject:self.layoutName forKey:FAOTControlLayoutDefaultsKey];
 }
@@ -258,7 +258,7 @@ NSString *FAOTPojavDefaultLayoutJSON(void) {
                                                      completion:^(FAOTControlLayout *updated, BOOL saved) {
             if (saved) {
                 [updated saveNamed:weakSelf.layoutName error:nil];
-                weakSelf.statusLabel.text = [NSString stringWithFormat:@"已保存 %@（%lu 个按键）",
+                weakSelf.statusLabel.text = [NSString stringWithFormat:@"已保�?%@�?lu 个按键）",
                                              weakSelf.layoutName, (unsigned long)updated.controls.count];
             }
             [weakSelf reloadSettings];
@@ -269,7 +269,7 @@ NSString *FAOTPojavDefaultLayoutJSON(void) {
 
 - (void)importLayoutTapped {
     UIAlertController *sheet = [UIAlertController alertControllerWithTitle:@"导入控件布局"
-                                                                  message:@"布局按 Pojav 的 mControlDataList 格式解析"
+                                                                  message:@"布局�?Pojav �?mControlDataList 格式解析"
                                                            preferredStyle:UIAlertControllerStyleActionSheet];
     [sheet addAction:[UIAlertAction actionWithTitle:@"Pojav 默认布局" style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
         [self importJSONString:FAOTPojavDefaultLayoutJSON() sourceName:@"pojav-default"];
@@ -285,7 +285,7 @@ NSString *FAOTPojavDefaultLayoutJSON(void) {
 
 - (void)promptPasteJSON {
     UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"粘贴 Pojav 布局 JSON"
-                                                                  message:@"支持 mControlDataList / control / 纯数组"
+                                                                  message:@"支持 mControlDataList / control / 纯数�?
                                                            preferredStyle:UIAlertControllerStyleAlert];
     [alert addTextFieldWithConfigurationHandler:^(UITextField *field) {
         field.placeholder = @"{\"mControlDataList\":[...]}";
@@ -302,7 +302,7 @@ NSString *FAOTPojavDefaultLayoutJSON(void) {
     FAOTControlLayout *layout = [FAOTControlLayout layoutFromPojavData:[json dataUsingEncoding:NSUTF8StringEncoding]
                                                                  error:&error];
     if (!layout) {
-        self.statusLabel.text = [NSString stringWithFormat:@"导入失败：%@", error.localizedDescription ?: @"格式不正确"];
+        self.statusLabel.text = [NSString stringWithFormat:@"导入失败�?@", error.localizedDescription ?: @"格式不正�?];
         return;
     }
     NSString *name = [NSString stringWithFormat:@"imported-%@", source];
@@ -310,17 +310,17 @@ NSString *FAOTPojavDefaultLayoutJSON(void) {
     self.layoutName = name;
     [self persistSettings];
     [self reloadSettings];
-    self.statusLabel.text = [NSString stringWithFormat:@"已导入 %lu 个控件 → %@", (unsigned long)layout.controls.count, name];
+    self.statusLabel.text = [NSString stringWithFormat:@"已导�?%lu 个控�?�?%@", (unsigned long)layout.controls.count, name];
 }
 
 - (void)launchTapped {
     [self.view endEditing:YES];
     [self persistSettings];
     if (self.onLaunch) {
-        NSInteger memory = @[@1, @2, @4, @6][self.memoryPicker.selectedSegmentIndex].integerValue;
+        NSInteger memory = ((NSNumber *)@[@1, @2, @4, @6][self.memoryPicker.selectedSegmentIndex]).integerValue;
         self.onLaunch(self.nameField.text.length ? self.nameField.text : @"Dev", memory, self.layoutName);
     } else {
-        self.statusLabel.text = @"未接上运行宿主：main.m 需要设置 onLaunch。";
+        self.statusLabel.text = @"未接上运行宿主：main.m 需要设�?onLaunch�?;
     }
 }
 
