@@ -29,8 +29,22 @@ jobs:
           printf '#!/bin/sh\necho "{}"\n' > .ci/bin/aar
           chmod +x .ci/bin/aar
           echo "$PWD/.ci/bin" >> "$GITHUB_PATH"
-          sudo ln -sfn /Applications/Xcode_16.4.app /Applications/Xcode.app
+          # Pick an Xcode that actually exists on this image; the tools spawn absolute
+          # /Applications/Xcode.app paths, so that path must be a real bundle.
+          XC=/Applications/Xcode_16.4.app
+          if [ ! -d "$XC" ]; then
+            XC=$(ls -d /Applications/Xcode_*.app 2>/dev/null | sort -V | tail -1)
+          fi
+          echo "XCODE=$XC"
+          ls /Applications | grep -i xcode || true
+          sudo ln -sfn "$XC" /Applications/Xcode.app
+          sudo xcode-select -s "$XC"
           xcode-select -p
+          if ! xcrun -f metal >/dev/null 2>&1; then
+            echo "metal toolchain missing; downloading"
+            sudo xcodebuild -downloadComponent MetalToolchain || true
+            xcrun -f metal || true
+          fi
 
       - name: Restore toolchains
         uses: actions/cache/restore@v4
@@ -216,5 +230,17 @@ jobs:
         if: failure()
         run: |
           set +e
-          find src/artifacts/ci -name 'stderr.log' -size +0 | head -4 | while read f; do echo "-- $f"; tail -25 "$f"; done
+          find src/artifacts -name 'stderr.log' -size +0 | head -6 | while read f; do echo "-- $f"; tail -30 "$f"; done
+          find src/artifacts -name 'stdout.log' -size +0 | head -4 | while read f; do echo "-- $f"; tail -20 "$f"; done
           df -h /
+
+      - name: Upload build logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs
+          path: |
+            src/artifacts/graphics
+            src/artifacts/ci
+          retention-days: 3
+          if-no-files-found: ignore
