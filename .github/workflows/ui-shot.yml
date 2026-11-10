@@ -40,7 +40,8 @@ jobs:
             ios/FAOTControlLayout.m ios/FAOTControlsOverlay.m \
             ios/FAOTLauncherViewController.m ios/FAOTControlEditorViewController.m \
             ios/smoke_main.m \
-            -framework UIKit -framework QuartzCore -o "$APP/FabricAOT"
+            -framework UIKit -framework Foundation -framework CoreGraphics -framework QuartzCore \
+            -o "$APP/FabricAOT"
           codesign --force --sign - "$APP" || true
           ls -la "$APP"
 
