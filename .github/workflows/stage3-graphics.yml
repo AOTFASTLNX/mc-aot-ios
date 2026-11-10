@@ -73,6 +73,14 @@ jobs:
           cd src
           python3 -B tools/fetch_stb.py
 
+      - name: Pinned ASM 9.9 jars
+        run: |
+          set -euo pipefail
+          cd src
+          python3 -B tools/build_method_splitter.py \
+            --output artifacts/ci/splitter-bootstrap --fetch-missing
+          ls .cache/libs/asm-9.9
+
       - name: LWJGL-lite
         run: |
           set -euo pipefail
