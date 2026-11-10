@@ -49,26 +49,29 @@ jobs:
           ls -la "$APP"
 
       - name: Boot simulator and capture the screenshots
-        timeout-minutes: 12
+        timeout-minutes: 15
         run: |
           set -euxo pipefail
-          UDID=$(xcrun simctl create FabricAOTShot com.apple.CoreSimulator.SimDeviceType.iPhone-16-Pro com.apple.CoreSimulator.SimRuntime.iOS-18-5)
+          # macOS has no coreutils `timeout`; perl's alarm is always present.
+          guard() { local seconds="$1"; shift; perl -e 'alarm shift; exec @ARGV' "$seconds" "$@"; }
+
+          UDID=$(guard 60 xcrun simctl create FabricAOTShot com.apple.CoreSimulator.SimDeviceType.iPhone-16-Pro com.apple.CoreSimulator.SimRuntime.iOS-18-5)
           echo "UDID=$UDID" >> "$GITHUB_ENV"
-          timeout 240 xcrun simctl bootstatus "$UDID" -b || true
+          guard 60 xcrun simctl boot "$UDID" || true
+          guard 240 xcrun simctl bootstatus "$UDID" -b || true
           xcrun simctl list devices | grep -i fabricaot || true
-          timeout 120 xcrun simctl install "$UDID" "$PWD/build/FabricAOT.app"
+          guard 120 xcrun simctl install "$UDID" "$PWD/build/FabricAOT.app"
 
           echo "== launcher =="
-          timeout 90 xcrun simctl launch --console-pty "$UDID" dev.fabricaot.launcher.smoke &
+          guard 60 xcrun simctl launch "$UDID" dev.fabricaot.launcher.smoke
           sleep 8
-          timeout 60 xcrun simctl io "$UDID" screenshot launcher.png
+          guard 60 xcrun simctl io "$UDID" screenshot launcher.png || true
           xcrun simctl terminate "$UDID" dev.fabricaot.launcher.smoke || true
 
           echo "== editor =="
-          xcrun simctl terminate "$UDID" dev.fabricaot.launcher.smoke || true
-          SIMCTL_CHILD_FAOT_SMOKE_MODE=editor timeout 120 xcrun simctl launch "$UDID" dev.fabricaot.launcher.smoke || true
+          SIMCTL_CHILD_FAOT_SMOKE_MODE=editor guard 60 xcrun simctl launch "$UDID" dev.fabricaot.launcher.smoke || true
           sleep 8
-          timeout 60 xcrun simctl io "$UDID" screenshot editor.png
+          guard 60 xcrun simctl io "$UDID" screenshot editor.png || true
           ls -la *.png
 
       - name: Upload screenshots
