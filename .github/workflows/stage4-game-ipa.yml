@@ -15,6 +15,22 @@ on:
         description: native-image parallelism 1..4
         required: false
         default: "4"
+      min_sites:
+        description: splitter minimum invocation sites per method
+        required: false
+        default: "200"
+      target_sites:
+        description: splitter target sites per part
+        required: false
+        default: "64"
+      max_parts:
+        description: splitter maximum parts per method
+        required: false
+        default: "64"
+      trigger_cost:
+        description: splitter sites x instructions threshold
+        required: false
+        default: "1000000"
 
 jobs:
   game:
@@ -153,7 +169,12 @@ jobs:
             --output-jar artifacts/ci/client-split.jar \
             --report artifacts/ci/split-report.json \
             --tool artifacts/compiler/method-splitter-01 \
+            --min-sites "${{ inputs.min_sites }}" \
+            --target-sites "${{ inputs.target_sites }}" \
+            --max-parts "${{ inputs.max_parts }}" \
+            --trigger-cost "${{ inputs.trigger_cost }}" \
             --classpath-file /tmp/cp.txt
+          python3 -c "import json;d=json.load(open('artifacts/ci/split-report.json'));print('split:',d.get('status'),d.get('rewrittenClasses'),d.get('splitMethods'),d.get('parts'))"
 
       - name: Inject Metal backend
         run: |
