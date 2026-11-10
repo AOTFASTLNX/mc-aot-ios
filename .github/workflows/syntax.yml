@@ -1,0 +1,45 @@
+name: syntax
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'ios/**'
+
+jobs:
+  objc:
+    runs-on: macos-15
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Compile-check the launcher and control sources
+        run: |
+          set -euo pipefail
+          SDK=$(xcrun --sdk iphonesimulator --show-sdk-path)
+          xcrun --sdk iphonesimulator clang \
+            -fsyntax-only -x objective-c -fobjc-arc \
+            -target arm64-apple-ios17.0-simulator \
+            -isysroot "$SDK" \
+            -Wall -Wextra -Wno-unused-parameter \
+            -I ios \
+            ios/FAOTControlLayout.m \
+            ios/FAOTControlsOverlay.m \
+            ios/FAOTLauncherViewController.m \
+            ios/FAOTControlEditorViewController.m
+
+      - name: Pojav layout import smoke test
+        run: |
+          set -euo pipefail
+          cat > /tmp/layout.json <<'JSON'
+          {"version":5,"scaledAt":100,"mControlDataList":[
+            {"name":"▲","keycodes":[87],"dynamicX":"${margin} * 2 + ${width}","dynamicY":"${bottom} - ${margin} * 3 - ${height} * 2","width":50,"height":50,"opacity":1,"bgColor":1291845632,"displayInGame":true,"displayInMenu":true},
+            {"name":"Esc","keycodes":[256],"dynamicX":"${right} - ${margin}","dynamicY":"${bottom} - ${margin}","width":80,"height":30}
+          ]}
+          JSON
+          python3 - <<'PY'
+          import json
+          doc = json.load(open('/tmp/layout.json'))
+          assert len(doc['mControlDataList']) == 2
+          print('pojav fixture parsed:', [b['name'] for b in doc['mControlDataList']])
+          PY
