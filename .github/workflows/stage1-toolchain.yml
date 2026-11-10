@@ -1,0 +1,72 @@
+name: stage1-toolchain
+
+on:
+  workflow_dispatch:
+    inputs:
+      note:
+        description: free-form note
+        required: false
+
+jobs:
+  a1:
+    runs-on: macos-15
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Clone upstream (token)
+        env:
+          MCFAO_TOKEN: ${{ secrets.MCFAO_TOKEN }}
+        run: |
+          set -euo pipefail
+          git clone --depth 1 "https://x-access-token:${MCFAO_TOKEN}@github.com/kexinOvO/MCFAO.git" src
+          cd src
+          echo "commit: $(git rev-parse --short HEAD)"
+
+      - name: Cache toolchains and upstream sources
+        uses: actions/cache@v4
+        with:
+          path: src/.cache
+          key: mcfao-cache-${{ hashFiles('src/compiler/toolchains.lock.json', 'src/compiler/upstream.lock.json') }}
+
+      - name: Select Xcode 26.3
+        run: |
+          set -euo pipefail
+          sudo xcode-select -s /Applications/Xcode_26.3.app
+          xcodebuild -version
+          xcrun --sdk iphoneos --show-sdk-version
+          xcrun --sdk iphonesimulator --show-sdk-version
+
+      - name: Bootstrap pinned GraalVM
+        run: |
+          set -euo pipefail
+          cd src
+          time python3 -B tools/bootstrap_toolchain.py
+          GRAAL=$(ls -d .cache/toolchains/graalvm-25.0.2/*/Contents/Home)
+          "$GRAAL/bin/java" -version
+          "$GRAAL/bin/native-image" --version
+          echo "GRAALVM_HOME=$PWD/$GRAAL" >> "$GITHUB_ENV"
+
+      - name: A1 iOS relocatable AOT
+        run: |
+          set -euo pipefail
+          cd src
+          mkdir -p artifacts/ci
+          time python3 -B tools/run_a1_probe.py --graalvm-home "$GRAALVM_HOME" \
+            --output artifacts/ci/a1-$(date +%s) --mode ios-relocatable || true
+
+      - name: Report
+        if: always()
+        run: |
+          set +e
+          echo "== outputs =="
+          ls -la src/artifacts/ci/ 2>/dev/null
+          for d in src/artifacts/ci/*/; do
+            echo "-- $d"
+            du -sh "$d" 2>/dev/null
+            [ -f "$d/result.json" ] && python3 -c "import json,sys;d=json.load(open('$d/result.json'));print(json.dumps({k:v for k,v in d.items() if k!='steps'},indent=2)[:2500])"
+            [ -f "$d/native-image/stderr.log" ] && tail -20 "$d/native-image/stderr.log"
+            [ -f "$d/native-image/stdout.log" ] && tail -10 "$d/native-image/stdout.log"
+          done
+          echo "== disk =="; df -h /
+          echo "== memory =="; vm_stat | head -6
