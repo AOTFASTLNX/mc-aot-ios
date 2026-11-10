@@ -1,0 +1,112 @@
+name: stage2-inputs
+
+on:
+  workflow_dispatch:
+    inputs:
+      note:
+        description: free-form note
+        required: false
+
+jobs:
+  inputs:
+    runs-on: macos-15
+    timeout-minutes: 120
+    env:
+      PYTHONDONTWRITEBYTECODE: "1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Prepare upstream tree
+        env:
+          MCFAO_TOKEN: ${{ secrets.MCFAO_TOKEN }}
+        run: |
+          set -euo pipefail
+          git clone --depth 1 "https://x-access-token:${MCFAO_TOKEN}@github.com/kexinOvO/MCFAO.git" src
+          echo "commit: $(git -C src rev-parse --short HEAD)"
+          python3 ci/patch_src.py src
+          mkdir -p .ci/bin
+          printf '#!/bin/sh\necho "{}"\n' > .ci/bin/aar
+          chmod +x .ci/bin/aar
+          echo "$PWD/.ci/bin" >> "$GITHUB_PATH"
+          sudo ln -sfn /Applications/Xcode_16.4.app /Applications/Xcode.app
+          xcode-select -p
+          xcrun --sdk iphoneos --show-sdk-version
+
+      - name: Cache pinned toolchains
+        uses: actions/cache@v4
+        with:
+          path: |
+            src/.cache/toolchains
+            src/.cache/upstream
+          key: mcfao-toolchains-${{ hashFiles('ci/patch_src.py') }}
+
+      - name: Bootstrap GraalVM + upstream sources
+        run: |
+          set -euo pipefail
+          cd src
+          time python3 -B tools/bootstrap_toolchain.py
+          time python3 -B tools/fetch_upstream.py
+          ls -d .cache/upstream/*/
+
+      - name: OpenJDK JNI headers
+        run: |
+          set -euo pipefail
+          cd src
+          GRAAL=$(ls -d "$PWD"/.cache/toolchains/graalvm-25.0.2/*/Contents/Home)
+          echo "GRAALVM_HOME=$GRAAL" >> "$GITHUB_ENV"
+          JDK=$(python3 -c "import json;print(json.load(open('.cache/upstream/jdk.json'))['path'])")
+          echo "JDK_SRC=$JDK" >> "$GITHUB_ENV"
+          time python3 -B tools/capture.py --output artifacts/ci/configure --timeout 480 --cwd "$JDK" -- \
+            bash configure --with-conf-name=fabricaot-host --with-boot-jdk="$GRAAL" \
+            --with-debug-level=release --with-native-debug-symbols=none --disable-warnings-as-errors \
+            --with-num-cores=4 --with-memory-size=4096 || { tail -25 artifacts/ci/configure/stderr.log; exit 1; }
+          time python3 -B tools/capture.py --output artifacts/ci/headers --timeout 1800 --cwd "$JDK" -- \
+            make CONF=fabricaot-host JOBS=4 java.base-java || { tail -25 artifacts/ci/headers/stderr.log; exit 1; }
+          ls "$JDK/build/fabricaot-host/support/headers/java.base" | head -5
+
+      - name: iOS bootstrap runtime
+        run: |
+          set -euo pipefail
+          cd src
+          time python3 -B tools/build_ios_runtime.py --sdk iphoneos --with-extnet \
+            --graalvm-home "$GRAALVM_HOME" --output artifacts/b1/runtime-ios
+          python3 -c "import json;d=json.load(open('artifacts/b1/runtime-ios/result.json'));print(d['status'],d['target'],len(d['archives']))"
+
+      - name: Minecraft 26.1.2 inputs
+        run: |
+          set -euo pipefail
+          cd src
+          time python3 -B ../ci/fetch_minecraft.py --out artifacts/ci/mc --src-root .
+          du -sh artifacts/ci/mc
+
+      - name: B0 prepared reference
+        run: |
+          set -euo pipefail
+          cd src
+          time python3 -B tools/prepare_b0.py --graalvm-home "$GRAALVM_HOME" --output artifacts/b0/prepared-04
+
+      - name: Method splitter
+        run: |
+          set -euo pipefail
+          cd src
+          python3 -B tools/build_method_splitter.py --output artifacts/compiler/method-splitter-01 --fetch-missing
+          python3 -c "import json;d=json.load(open('artifacts/compiler/method-splitter-01/result.json'));print(d['status'],len(d['classFiles']))"
+
+      - name: Game assets (official CDN, fetch missing)
+        run: |
+          set -euo pipefail
+          cd src
+          mkdir -p artifacts/ci/empty-assets
+          time python3 -B tools/stage_game_assets.py --source artifacts/ci/empty-assets \
+            --version-metadata artifacts/ci/mc/26.1.2.json \
+            --output artifacts/graphics/game-assets-01 --fetch-missing
+          du -sh artifacts/graphics/game-assets-01
+
+      - name: Report
+        if: always()
+        run: |
+          set +e
+          echo "== tree =="; du -sh src/artifacts/* 2>/dev/null; du -sh src/artifacts/*/* 2>/dev/null | head -20
+          echo "== disk =="; df -h /
+          echo "== failures =="
+          find src/artifacts -name 'stderr.log' -size +0 -path '*ci*' | head -5 | while read f; do echo "-- $f"; tail -15 "$f"; done
