@@ -50,7 +50,13 @@ patch(
     "    command=[sys.executable,'-B',str(Path(__file__).resolve()),'--cache-only']",
 )
 
-# 3. Xcode lives at /Applications/Xcode.app on the author's Mac; the CI image installs
+# 3b. cmake's compiler probe writes scratch files under TMPDIR, which the seatbelt profile
+#     only opens for `work`; point TMPDIR there instead of denying /private/var/folders.
+patch(
+    "tools/prepare_shader_toolchain.py",
+    "env={'PYTHONDONTWRITEBYTECODE':'1','DEVELOPER_DIR':'/Applications/Xcode.app/Contents/Developer'}",
+    "env={'PYTHONDONTWRITEBYTECODE':'1','DEVELOPER_DIR':'/Applications/Xcode.app/Contents/Developer','TMPDIR':str(work/'tmp')}",
+)
 #    versioned bundles and we symlink the generic name. Seatbelt resolves symlinks, so a
 #    rule naming "/Applications/Xcode.app" does not cover "/Applications/Xcode_26.3.app";
 #    widen the shader-toolchain sandbox to the bundle directory instead.
@@ -58,6 +64,13 @@ patch(
     "tools/prepare_shader_toolchain.py",
     "'/System','/usr','/bin','/Library/Apple/System','/Applications/Xcode.app',CACHE,work",
     "'/System','/usr','/bin','/Library/Apple/System','/Applications',CACHE,work",
+)
+
+# 3c. Same TMPDIR issue for the OpenAL build, which reuses the shader sandbox profile.
+patch(
+    "tools/build_openal_soft.py",
+    "env={'SDKROOT':sdk,'DEVELOPER_DIR':'/Applications/Xcode.app/Contents/Developer','PYTHONDONTWRITEBYTECODE':'1'}",
+    "env={'SDKROOT':sdk,'DEVELOPER_DIR':'/Applications/Xcode.app/Contents/Developer','PYTHONDONTWRITEBYTECODE':'1','TMPDIR':str(work/'tmp')}",
 )
 
 # 4. A0 reference evidence: the committed copy is a Mac-launcher inventory with the
