@@ -11,6 +11,10 @@ on:
         description: runner label
         required: false
         default: macos-26
+      parallelism:
+        description: native-image parallelism 1..4
+        required: false
+        default: "4"
 
 jobs:
   game:
@@ -167,7 +171,7 @@ jobs:
             --graphics-bridge artifacts/graphics/lwjgl-ios-world-01 \
             --metal-bootstrap artifacts/graphics/metal-ios-world-03 \
             --full-build --relocatable --include-game-resources \
-            --heap-gib "${{ inputs.heap_gib }}" \
+            --heap-gib "${{ inputs.heap_gib }}" --parallelism "${{ inputs.parallelism }}" \
             --output artifacts/ci/aot
           python3 -c "import json;d=json.load(open('artifacts/ci/aot/result.json'));print(d['status'],d.get('imageObject',{}).get('bytes'))"
 
@@ -250,6 +254,7 @@ jobs:
             src/artifacts/**/stdout.log
           retention-days: 3
           if-no-files-found: ignore
+
 
 
 
