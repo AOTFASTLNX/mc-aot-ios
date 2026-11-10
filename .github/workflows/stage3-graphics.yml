@@ -1,4 +1,4 @@
-name: stage3-graphics
+﻿name: stage3-graphics
 
 on:
   workflow_dispatch:
@@ -9,7 +9,7 @@ on:
 
 jobs:
   graphics:
-    runs-on: macos-15
+    runs-on: macos-26
     timeout-minutes: 120
     env:
       PYTHONDONTWRITEBYTECODE: "1"
@@ -152,3 +152,4 @@ jobs:
             src/artifacts/graphics/shader-toolchain-03
             src/artifacts/graphics/shader-catalog-03
           key: mcfao-stage3-${{ github.run_id }}
+
