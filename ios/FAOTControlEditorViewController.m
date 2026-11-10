@@ -17,7 +17,7 @@
 @implementation FAOTControlEditorViewController
 
 - (BOOL)prefersStatusBarHidden { return YES; }
-- (UIInterfaceOrientationMask)supportedInterfaceOrientations { return UIInterfaceOrientationMaskLandscape; }
+- (UIInterfaceOrientationMask)supportedInterfaceOrientations { return UIInterfaceOrientationMaskAllButUpsideDown; }
 
 - (instancetype)initWithLayout:(FAOTControlLayout *)layout
                     layoutName:(NSString *)layoutName
@@ -63,12 +63,21 @@
         button.titleLabel.font = [UIFont systemFontOfSize:14 weight:UIFontWeightSemibold];
         button.backgroundColor = [UIColor colorWithWhite:1.0 alpha:0.12];
         button.layer.cornerRadius = 8;
-        button.contentEdgeInsets = UIEdgeInsetsMake(0, 12, 0, 12);
         [button addTarget:self action:NSSelectorFromString(selectors[i]) forControlEvents:UIControlEventTouchUpInside];
-        button.translatesAutoresizingMaskIntoConstraints = NO;
-        [self.toolbar addSubview:button];
         [buttons addObject:button];
     }
+    /* Six commands do not fit on a phone in landscape, let alone portrait, so the bar scrolls. */
+    UIScrollView *strip = [UIScrollView new];
+    strip.showsHorizontalScrollIndicator = NO;
+    strip.translatesAutoresizingMaskIntoConstraints = NO;
+    [self.toolbar addSubview:strip];
+    UIStackView *stack = [[UIStackView alloc] initWithArrangedSubviews:buttons];
+    stack.axis = UILayoutConstraintAxisHorizontal;
+    stack.spacing = 8;
+    stack.alignment = UIStackViewAlignmentCenter;
+    stack.translatesAutoresizingMaskIntoConstraints = NO;
+    [strip addSubview:stack];
+
     UILayoutGuide *safe = self.view.safeAreaLayoutGuide;
     [NSLayoutConstraint activateConstraints:@[
         [self.overlay.topAnchor constraintEqualToAnchor:self.view.topAnchor],
@@ -77,28 +86,28 @@
         [self.overlay.bottomAnchor constraintEqualToAnchor:self.view.bottomAnchor],
 
         [self.hint.leadingAnchor constraintEqualToAnchor:safe.leadingAnchor constant:16],
+        [self.hint.trailingAnchor constraintLessThanOrEqualToAnchor:safe.trailingAnchor constant:-16],
         [self.hint.topAnchor constraintEqualToAnchor:safe.topAnchor constant:8],
 
         [self.toolbar.leadingAnchor constraintEqualToAnchor:safe.leadingAnchor constant:16],
         [self.toolbar.trailingAnchor constraintEqualToAnchor:safe.trailingAnchor constant:-16],
         [self.toolbar.bottomAnchor constraintEqualToAnchor:safe.bottomAnchor constant:-8],
-        [self.toolbar.heightAnchor constraintEqualToConstant:52],
+        [self.toolbar.heightAnchor constraintEqualToConstant:56],
+
+        [strip.leadingAnchor constraintEqualToAnchor:self.toolbar.leadingAnchor constant:12],
+        [strip.trailingAnchor constraintEqualToAnchor:self.toolbar.trailingAnchor constant:-12],
+        [strip.topAnchor constraintEqualToAnchor:self.toolbar.topAnchor],
+        [strip.bottomAnchor constraintEqualToAnchor:self.toolbar.bottomAnchor],
+
+        [stack.leadingAnchor constraintEqualToAnchor:strip.contentLayoutGuide.leadingAnchor],
+        [stack.trailingAnchor constraintEqualToAnchor:strip.contentLayoutGuide.trailingAnchor],
+        [stack.topAnchor constraintEqualToAnchor:strip.contentLayoutGuide.topAnchor],
+        [stack.bottomAnchor constraintEqualToAnchor:strip.contentLayoutGuide.bottomAnchor],
+        [stack.heightAnchor constraintEqualToAnchor:strip.frameLayoutGuide.heightAnchor],
     ]];
-    UIButton *previous = nil;
     for (UIButton *button in buttons) {
-        [NSLayoutConstraint activateConstraints:@[
-            [button.centerYAnchor constraintEqualToAnchor:self.toolbar.centerYAnchor],
-            [button.heightAnchor constraintEqualToConstant:36],
-        ]];
-        if (previous) {
-            [button.leadingAnchor constraintEqualToAnchor:previous.trailingAnchor constant:8].active = YES;
-        } else {
-            [button.leadingAnchor constraintEqualToAnchor:self.toolbar.leadingAnchor constant:12].active = YES;
-        }
-        previous = button;
-    }
-    if (previous) {
-        [previous.trailingAnchor constraintLessThanOrEqualToAnchor:self.toolbar.trailingAnchor constant:-12].active = YES;
+        [button.heightAnchor constraintEqualToConstant:36].active = YES;
+        [button.widthAnchor constraintGreaterThanOrEqualToConstant:64].active = YES;
     }
 }
 
