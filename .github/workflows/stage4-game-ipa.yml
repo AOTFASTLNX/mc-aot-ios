@@ -65,6 +65,29 @@ jobs:
           key: mcfao-stage3-none
           restore-keys: mcfao-stage3-
 
+      - name: Graphics libraries (only if the cache did not provide them)
+        run: |
+          set -euo pipefail
+          cd src
+          G=artifacts/graphics
+          if [ -d "$G/glfw-ios-world-01" ] && [ -d "$G/lwjgl-ios-world-01" ] && [ -d "$G/metal-ios-world-03" ] \
+             && [ -d "$G/openal-ios-world-01" ] && [ -d "$G/shaders-ios-world-01" ]; then
+            echo "graphics cache present"; exit 0
+          fi
+          python3 -B tools/fetch_stb.py
+          python3 -B tools/build_method_splitter.py --output artifacts/ci/splitter-bootstrap --fetch-missing
+          test -d "$G/glfw-ios-world-01" || python3 -B tools/build_glfw_lite.py --sdk iphoneos --output "$G/glfw-ios-world-01" --test-host
+          test -d "$G/lwjgl-ios-world-01" || python3 -B tools/build_lwjgl_lite.py --sdk iphoneos \
+            --glfw-library "$G/glfw-ios-world-01/libglfw.dylib" --output "$G/lwjgl-ios-world-01"
+          test -d "$G/shader-toolchain-03" || python3 -B tools/prepare_shader_toolchain.py --output "$G/shader-toolchain-03"
+          test -d "$G/shader-catalog-03" || python3 -B tools/collect_shader_catalog.py --output "$G/shader-catalog-03"
+          test -d "$G/metal-ios-world-03" || python3 -B tools/build_metal_backend.py --sdk iphoneos \
+            --graphics-bridge "$G/lwjgl-ios-world-01" \
+            --glfw-library "$G/glfw-ios-world-01/libglfw.dylib" --output "$G/metal-ios-world-03"
+          test -d "$G/openal-ios-world-01" || python3 -B tools/build_openal_soft.py --sdk iphoneos --output "$G/openal-ios-world-01"
+          test -d "$G/shaders-ios-world-01" || python3 -B tools/translate_shaders.py --sdk iphoneos \
+            --catalog "$G/shader-catalog-03" --toolchain "$G/shader-toolchain-03" --output "$G/shaders-ios-world-01"
+
       - name: Verify inputs
         run: |
           set -euo pipefail
