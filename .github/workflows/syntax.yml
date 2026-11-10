@@ -22,11 +22,13 @@ jobs:
             -target arm64-apple-ios17.0-simulator \
             -isysroot "$SDK" \
             -Wall -Wextra -Wno-unused-parameter \
-            -I ios \
+            -I ios -I ios/glfw-lite \
             ios/FAOTControlLayout.m \
             ios/FAOTControlsOverlay.m \
             ios/FAOTLauncherViewController.m \
-            ios/FAOTControlEditorViewController.m
+            ios/FAOTControlEditorViewController.m \
+            ios/glfw-lite/uikit_surface.m \
+            ios/smoke_main.m
 
       - name: Pojav layout import smoke test
         run: |
