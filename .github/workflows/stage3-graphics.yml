@@ -37,7 +37,7 @@ jobs:
           path: |
             src/.cache/toolchains
             src/.cache/upstream
-          key: mcfao-toolchains-none
+          key: mcfao-toolchains-v1
           restore-keys: mcfao-toolchains-
 
       - name: Restore stage2 artifacts

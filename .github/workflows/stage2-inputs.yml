@@ -46,7 +46,7 @@ jobs:
           path: |
             src/.cache/toolchains
             src/.cache/upstream
-          key: mcfao-toolchains-${{ hashFiles('ci/patch_src.py') }}
+          key: mcfao-toolchains-v1
 
       - name: Bootstrap GraalVM + upstream sources
         run: |

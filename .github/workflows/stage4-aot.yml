@@ -1,0 +1,142 @@
+name: stage4-aot
+
+on:
+  workflow_dispatch:
+    inputs:
+      heap_gib:
+        description: heap for the client analysis (6 is the pinned upstream value)
+        required: false
+        default: "6"
+
+jobs:
+  aot:
+    runs-on: macos-15
+    timeout-minutes: 180
+    env:
+      PYTHONDONTWRITEBYTECODE: "1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Prepare upstream tree
+        env:
+          MCFAO_TOKEN: ${{ secrets.MCFAO_TOKEN }}
+        run: |
+          set -euo pipefail
+          git clone --depth 1 "https://x-access-token:${MCFAO_TOKEN}@github.com/kexinOvO/MCFAO.git" src
+          echo "commit: $(git -C src rev-parse --short HEAD)"
+          python3 ci/patch_src.py src
+          mkdir -p .ci/bin
+          printf '#!/bin/sh\necho "{}"\n' > .ci/bin/aar
+          chmod +x .ci/bin/aar
+          echo "$PWD/.ci/bin" >> "$GITHUB_PATH"
+          sudo ln -sfn /Applications/Xcode_16.4.app /Applications/Xcode.app
+
+      - name: Restore toolchains
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            src/.cache/toolchains
+            src/.cache/upstream
+          key: mcfao-toolchains-v1
+          restore-keys: mcfao-toolchains-
+
+      - name: Restore stage2 + stage3 artifacts
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            src/artifacts/b1/runtime-ios
+            src/artifacts/b0/prepared-04
+            src/artifacts/compiler/method-splitter-01
+            src/artifacts/ci/mc
+            src/artifacts/graphics/game-assets-01
+            src/artifacts/graphics/glfw-ios-world-01
+            src/artifacts/graphics/lwjgl-ios-world-01
+            src/artifacts/graphics/metal-ios-world-03
+            src/artifacts/graphics/openal-ios-world-01
+            src/artifacts/graphics/shaders-ios-world-01
+          key: mcfao-stage23-none
+          restore-keys: mcfao-stage3-
+      - name: Restore stage2 separately
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            src/artifacts/b1/runtime-ios
+            src/artifacts/b0/prepared-04
+            src/artifacts/compiler/method-splitter-01
+            src/artifacts/ci/mc
+            src/artifacts/graphics/game-assets-01
+          key: mcfao-stage2-none
+          restore-keys: mcfao-stage2-
+
+      - name: Verify inputs
+        run: |
+          set -euo pipefail
+          cd src
+          test -f artifacts/b0/prepared-04/result.json
+          test -f artifacts/ci/mc/meta/versions/26.1.2/26.1.2.jar
+          test -f artifacts/graphics/glfw-ios-world-01/libglfw.dylib
+          test -d artifacts/graphics/shaders-ios-world-01
+          ls -d .cache/toolchains/graalvm-25.0.2/*/Contents/Home
+          GRAAL=$(ls -d "$PWD"/.cache/toolchains/graalvm-25.0.2/*/Contents/Home)
+          echo "GRAALVM_HOME=$GRAAL" >> "$GITHUB_ENV"
+
+      - name: Split methods (analysis wall)
+        run: |
+          set -euo pipefail
+          cd src
+          mkdir -p artifacts/ci
+          python3 - <<'PY' > /tmp/cp.txt
+          import json
+          prepared = json.load(open("artifacts/b0/prepared-04/result.json", encoding="utf-8"))
+          print(":".join(row["path"] for row in prepared["referenceLibraries"]))
+          PY
+          time python3 -B tools/split_methods.py \
+            --jar artifacts/ci/mc/meta/versions/26.1.2/26.1.2.jar \
+            --output-jar artifacts/ci/client-split.jar \
+            --report artifacts/ci/split-report.json \
+            --tool artifacts/compiler/method-splitter-01 \
+            --classpath-file /tmp/cp.txt
+          python3 -c "import json;d=json.load(open('artifacts/ci/split-report.json'));print({k:d[k] for k in list(d)[:6]})"
+
+      - name: Inject Metal backend
+        run: |
+          set -euo pipefail
+          cd src
+          time python3 -B tools/inject_metal_backend.py --client artifacts/ci/client-split.jar \
+            --output artifacts/ci/injected --graalvm-home "$GRAALVM_HOME" \
+            --asm-jars .cache/libs/asm-9.9/asm-9.9.jar .cache/libs/asm-9.9/asm-tree-9.9.jar
+          ls artifacts/ci/injected
+
+      - name: A1 relocatable probe (produces CAP cache)
+        run: |
+          set -euo pipefail
+          cd src
+          time python3 -B tools/run_a1_probe.py --graalvm-home "$GRAALVM_HOME" \
+            --output artifacts/ci/a1 --mode ios-relocatable || true
+          ls artifacts/ci/a1/caps | head
+
+      - name: Client AOT (relocatable object)
+        run: |
+          set -euo pipefail
+          cd src
+          time python3 -B tools/probe_client_graph.py \
+            --prepared artifacts/b0/prepared-04 \
+            --runtime artifacts/b1/runtime-ios \
+            --caps artifacts/ci/a1/caps \
+            --b1-evidence artifacts/evidence/b1-user-device-run-01/result.json \
+            --client-jar artifacts/ci/injected/client-26.1.2-metal.jar \
+            --graphics-bridge artifacts/graphics/lwjgl-ios-world-01 \
+            --metal-bootstrap artifacts/graphics/metal-ios-world-03 \
+            --full-build --relocatable --include-game-resources \
+            --heap-gib "${{ inputs.heap_gib }}" \
+            --output artifacts/ci/aot
+          python3 -c "import json;d=json.load(open('artifacts/ci/aot/result.json'));print(d['status'], d.get('imageObject',{}).get('bytes'))"
+
+      - name: Report
+        if: always()
+        run: |
+          set +e
+          du -sh src/artifacts/ci/* 2>/dev/null
+          df -h /
+          for f in $(find src/artifacts/ci -name 'stderr.log' -size +0 | head -4); do echo "-- $f"; tail -20 "$f"; done
+          vm_stat | head -5
