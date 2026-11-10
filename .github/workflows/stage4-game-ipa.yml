@@ -1,4 +1,4 @@
-﻿name: stage4-game-ipa
+name: stage4-game-ipa
 
 on:
   workflow_dispatch:
@@ -7,10 +7,14 @@ on:
         description: heap for the client analysis (6 is the pinned upstream value)
         required: false
         default: "6"
+      runner:
+        description: runner label
+        required: false
+        default: macos-26
 
 jobs:
   game:
-    runs-on: macos-26
+    runs-on: ${{ inputs.runner || 'macos-26' }}
     timeout-minutes: 240
     env:
       PYTHONDONTWRITEBYTECODE: "1"
@@ -245,4 +249,5 @@ jobs:
             src/artifacts/ci
           retention-days: 3
           if-no-files-found: ignore
+
 
