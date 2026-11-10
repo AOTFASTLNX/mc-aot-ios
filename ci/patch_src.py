@@ -43,10 +43,11 @@ patch(
 # 2. The AAR CLI is a private registry binary. The CI checkout has none; the shim is on PATH.
 patch(
     "tools/prepare_shader_toolchain.py",
-    "    aar='/Users/kexin/Documents/Codex/monitor/bin/aar'",
+    "    aar='/Users/kexin/Documents/Codex/monitor/bin/aar';command=[sys.executable,'-B',str(Path(__file__).resolve()),'--cache-only']",
     "    import shutil as _shutil\n"
     "    aar = _shutil.which('aar')\n"
-    "    if not aar: raise SystemExit('aar shim missing from PATH')",
+    "    if not aar: raise SystemExit('aar shim missing from PATH')\n"
+    "    command=[sys.executable,'-B',str(Path(__file__).resolve()),'--cache-only']",
 )
 
 # 3. Xcode lives at /Applications/Xcode.app on the author's Mac; the CI image installs
