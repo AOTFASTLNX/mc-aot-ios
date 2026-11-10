@@ -49,22 +49,26 @@ jobs:
           ls -la "$APP"
 
       - name: Boot simulator and capture the screenshots
+        timeout-minutes: 12
         run: |
-          set -euo pipefail
+          set -euxo pipefail
           UDID=$(xcrun simctl create FabricAOTShot com.apple.CoreSimulator.SimDeviceType.iPhone-16-Pro com.apple.CoreSimulator.SimRuntime.iOS-18-5)
           echo "UDID=$UDID" >> "$GITHUB_ENV"
-          xcrun simctl boot "$UDID" || true
-          xcrun simctl bootstatus "$UDID" -b
-          xcrun simctl install "$UDID" "$PWD/build/FabricAOT.app"
+          timeout 240 xcrun simctl bootstatus "$UDID" -b || true
+          xcrun simctl list devices | grep -i fabricaot || true
+          timeout 120 xcrun simctl install "$UDID" "$PWD/build/FabricAOT.app"
 
-          xcrun simctl launch "$UDID" dev.fabricaot.launcher.smoke
-          sleep 6
-          xcrun simctl io "$UDID" screenshot launcher.png
-
+          echo "== launcher =="
+          timeout 90 xcrun simctl launch --console-pty "$UDID" dev.fabricaot.launcher.smoke &
+          sleep 8
+          timeout 60 xcrun simctl io "$UDID" screenshot launcher.png
           xcrun simctl terminate "$UDID" dev.fabricaot.launcher.smoke || true
-          SIMCTL_CHILD_FAOT_SMOKE_MODE=editor xcrun simctl launch "$UDID" dev.fabricaot.launcher.smoke
-          sleep 6
-          xcrun simctl io "$UDID" screenshot editor.png
+
+          echo "== editor =="
+          xcrun simctl terminate "$UDID" dev.fabricaot.launcher.smoke || true
+          SIMCTL_CHILD_FAOT_SMOKE_MODE=editor timeout 120 xcrun simctl launch "$UDID" dev.fabricaot.launcher.smoke || true
+          sleep 8
+          timeout 60 xcrun simctl io "$UDID" screenshot editor.png
           ls -la *.png
 
       - name: Upload screenshots
