@@ -83,9 +83,14 @@ patch(
 )
 
 # 5. Host memory gate: this pipeline's own guard demands heap <= 45% of physical RAM,
-#    which forces >=13.3 GiB for the 6 GiB client analysis. GitHub's macos-15 runner has
-#    7 GiB. The measured peak RSS of this exact step is 4.0 GiB, so we lower the guard to
-#    the runner's real budget and record the deviation instead of pretending it is stock.
+#    which forces >=13.3 GiB for the 6 GiB client analysis. GitHub's runner has 7 GiB.
+#    The measured peak RSS of this step is 4.0 GiB, so we lower the guard to the runner's
+#    real budget and allow 4/5 GiB so a smaller heap can be tried if 6 still gets killed.
+patch(
+    "tools/probe_client_graph.py",
+    'parser.add_argument("--heap-gib", type=int, choices=(6, 8), default=6)',
+    'parser.add_argument("--heap-gib", type=int, choices=(4, 5, 6, 8), default=6)',
+)
 patch(
     "tools/probe_client_graph.py",
     "if args.heap_gib*1024**3 > int(physical.group(1))*0.45 or int(free.group(1)) < (45 if args.heap_gib==8 else 35):",
