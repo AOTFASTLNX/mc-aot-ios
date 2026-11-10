@@ -1,0 +1,79 @@
+name: ui-shot
+
+on:
+  workflow_dispatch:
+
+jobs:
+  screenshot:
+    runs-on: macos-15
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build a minimal UIKit host for the launcher
+        run: |
+          set -euo pipefail
+          SDK=$(xcrun --sdk iphonesimulator --show-sdk-path)
+          APP="$PWD/build/FabricAOT.app"
+          mkdir -p "$APP"
+          cat > "$APP/Info.plist" <<'PLIST'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+            <key>CFBundleExecutable</key><string>FabricAOT</string>
+            <key>CFBundleIdentifier</key><string>dev.fabricaot.launcher.smoke</string>
+            <key>CFBundleName</key><string>FabricAOT</string>
+            <key>CFBundleShortVersionString</key><string>0.1</string>
+            <key>CFBundleVersion</key><string>1</string>
+            <key>MinimumOSVersion</key><string>17.0</string>
+            <key>UILaunchScreen</key><dict/>
+            <key>UISupportedInterfaceOrientations</key>
+            <array><string>UIInterfaceOrientationPortrait</string></array>
+            <key>UIApplicationSceneManifest</key>
+            <dict><key>UIApplicationSupportsMultipleScenes</key><false/></dict>
+          </dict></plist>
+          PLIST
+          xcrun --sdk iphonesimulator clang \
+            -target arm64-apple-ios17.0-simulator -isysroot "$SDK" \
+            -fobjc-arc -O1 -Wall \
+            -I ios \
+            ios/FAOTControlLayout.m ios/FAOTControlsOverlay.m \
+            ios/FAOTLauncherViewController.m ios/FAOTControlEditorViewController.m \
+            ios/smoke_main.m \
+            -framework UIKit -framework QuartzCore -o "$APP/FabricAOT"
+          codesign --force --sign - "$APP" || true
+          ls -la "$APP"
+
+      - name: Boot simulator and capture the screenshots
+        run: |
+          set -euo pipefail
+          UDID=$(xcrun simctl create FabricAOTShot com.apple.CoreSimulator.SimDeviceType.iPhone-16-Pro com.apple.CoreSimulator.SimRuntime.iOS-18-5)
+          echo "UDID=$UDID" >> "$GITHUB_ENV"
+          xcrun simctl boot "$UDID" || true
+          xcrun simctl bootstatus "$UDID" -b
+          xcrun simctl install "$UDID" "$PWD/build/FabricAOT.app"
+
+          xcrun simctl launch "$UDID" dev.fabricaot.launcher.smoke
+          sleep 6
+          xcrun simctl io "$UDID" screenshot launcher.png
+
+          xcrun simctl terminate "$UDID" dev.fabricaot.launcher.smoke || true
+          SIMCTL_CHILD_FAOT_SMOKE_MODE=editor xcrun simctl launch "$UDID" dev.fabricaot.launcher.smoke
+          sleep 6
+          xcrun simctl io "$UDID" screenshot editor.png
+          ls -la *.png
+
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: launcher-screenshots
+          path: |
+            launcher.png
+            editor.png
+          if-no-files-found: warn
+
+      - name: Diagnostics on failure
+        if: failure()
+        run: |
+          xcrun simctl spawn "${UDID:-}" log show --last 3m --predicate 'process == "FabricAOT"' 2>/dev/null | tail -40 || true
