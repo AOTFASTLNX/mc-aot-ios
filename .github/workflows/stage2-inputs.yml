@@ -85,6 +85,7 @@ jobs:
           set -euo pipefail
           cd src
           time python3 -B ../ci/fetch_minecraft.py --out artifacts/ci/mc --src-root .
+          echo "MCFAO_A0=$PWD/artifacts/ci/mc/a0" >> "$GITHUB_ENV"
           du -sh artifacts/ci/mc
 
       - name: B0 prepared reference

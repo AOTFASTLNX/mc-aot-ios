@@ -53,7 +53,16 @@ patch(
 #    versioned bundles. This repo's tools spawn absolute /Applications/Xcode.app paths,
 #    so the workflow creates that symlink; nothing to patch there.
 
-# 4. Host memory gate: this pipeline's own guard demands heap <= 45% of physical RAM,
+# 4. A0 reference evidence: the committed copy is a Mac-launcher inventory with the
+#    author's absolute paths. Point the tool at the reference this workflow rebuilds.
+patch(
+    "tools/prepare_b0.py",
+    '    baseline = ROOT / "artifacts/evidence/a0-desktop-reference"',
+    '    baseline = Path(__import__("os").environ.get("MCFAO_A0")\n'
+    '                     or ROOT / "artifacts/evidence/a0-desktop-reference")',
+)
+
+# 5. Host memory gate: this pipeline's own guard demands heap <= 45% of physical RAM,
 #    which forces >=13.3 GiB for the 6 GiB client analysis. GitHub's macos-15 runner has
 #    7 GiB. The measured peak RSS of this exact step is 4.0 GiB, so we lower the guard to
 #    the runner's real budget and record the deviation instead of pretending it is stock.
