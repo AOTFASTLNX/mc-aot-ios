@@ -118,3 +118,16 @@ jobs:
           echo "== disk =="; df -h /
           echo "== failures =="
           find src/artifacts -name 'stderr.log' -size +0 -path '*ci*' | head -5 | while read f; do echo "-- $f"; tail -15 "$f"; done
+
+      - name: Save stage2 artifacts
+        if: success()
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            src/artifacts/b1/runtime-ios
+            src/artifacts/b0/prepared-04
+            src/artifacts/compiler/method-splitter-01
+            src/artifacts/ci/mc
+            src/artifacts/graphics/game-assets-01
+          key: mcfao-stage2-${{ github.run_id }}
+

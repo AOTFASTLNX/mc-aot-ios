@@ -1,0 +1,140 @@
+name: stage3-graphics
+
+on:
+  workflow_dispatch:
+    inputs:
+      note:
+        description: free-form note
+        required: false
+
+jobs:
+  graphics:
+    runs-on: macos-15
+    timeout-minutes: 120
+    env:
+      PYTHONDONTWRITEBYTECODE: "1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Prepare upstream tree
+        env:
+          MCFAO_TOKEN: ${{ secrets.MCFAO_TOKEN }}
+        run: |
+          set -euo pipefail
+          git clone --depth 1 "https://x-access-token:${MCFAO_TOKEN}@github.com/kexinOvO/MCFAO.git" src
+          echo "commit: $(git -C src rev-parse --short HEAD)"
+          python3 ci/patch_src.py src
+          mkdir -p .ci/bin
+          printf '#!/bin/sh\necho "{}"\n' > .ci/bin/aar
+          chmod +x .ci/bin/aar
+          echo "$PWD/.ci/bin" >> "$GITHUB_PATH"
+          sudo ln -sfn /Applications/Xcode_16.4.app /Applications/Xcode.app
+          xcode-select -p
+
+      - name: Restore toolchains
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            src/.cache/toolchains
+            src/.cache/upstream
+          key: mcfao-toolchains-none
+          restore-keys: mcfao-toolchains-
+
+      - name: Restore stage2 artifacts
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            src/artifacts/b1/runtime-ios
+            src/artifacts/b0/prepared-04
+            src/artifacts/compiler/method-splitter-01
+            src/artifacts/ci/mc
+            src/artifacts/graphics/game-assets-01
+          key: mcfao-stage2-none
+          restore-keys: mcfao-stage2-
+
+      - name: Verify restored inputs
+        run: |
+          set -euo pipefail
+          cd src
+          ls -d artifacts/b1/runtime-ios artifacts/b0/prepared-04 artifacts/compiler/method-splitter-01 artifacts/ci/mc artifacts/graphics/game-assets-01
+          ls -d .cache/toolchains/graalvm-25.0.2/*/Contents/Home
+          python3 -c "import json;print(json.load(open('artifacts/b1/runtime-ios/result.json'))['status'])"
+
+      - name: GLFW-lite
+        run: |
+          set -euo pipefail
+          cd src
+          time python3 -B tools/build_glfw_lite.py --sdk iphoneos --output artifacts/graphics/glfw-ios-world-01 --test-host
+          python3 -c "import json;d=json.load(open('artifacts/graphics/glfw-ios-world-01/result.json'));print(d['status'],d['binarySHA256'][:16])"
+
+      - name: LWJGL-lite
+        run: |
+          set -euo pipefail
+          cd src
+          time python3 -B tools/build_lwjgl_lite.py --sdk iphoneos \
+            --glfw-library artifacts/graphics/glfw-ios-world-01/libglfw.dylib \
+            --output artifacts/graphics/lwjgl-ios-world-01
+          python3 -c "import json;d=json.load(open('artifacts/graphics/lwjgl-ios-world-01/result.json'));print(d['status'])"
+
+      - name: Shader host toolchain (cmake/glslang/SPIRV-Cross)
+        run: |
+          set -euo pipefail
+          cd src
+          time python3 -B tools/prepare_shader_toolchain.py --output artifacts/graphics/shader-toolchain-03
+          python3 -c "import json;d=json.load(open('artifacts/graphics/shader-toolchain-03/result.json'));print(d['status'])"
+
+      - name: Shader catalog (88 GLSL -> programs)
+        run: |
+          set -euo pipefail
+          cd src
+          time python3 -B tools/collect_shader_catalog.py --output artifacts/graphics/shader-catalog-03
+          python3 -c "import json;d=json.load(open('artifacts/graphics/shader-catalog-03/result.json'));print(d['status'],d.get('programs'))"
+
+      - name: Metal backend
+        run: |
+          set -euo pipefail
+          cd src
+          time python3 -B tools/build_metal_backend.py --sdk iphoneos \
+            --graphics-bridge artifacts/graphics/lwjgl-ios-world-01 \
+            --glfw-library artifacts/graphics/glfw-ios-world-01/libglfw.dylib \
+            --output artifacts/graphics/metal-ios-world-03
+          python3 -c "import json;d=json.load(open('artifacts/graphics/metal-ios-world-03/result.json'));print(d['status'])"
+
+      - name: OpenAL Soft
+        run: |
+          set -euo pipefail
+          cd src
+          time python3 -B tools/build_openal_soft.py --sdk iphoneos --output artifacts/graphics/openal-ios-world-01
+          python3 -c "import json;d=json.load(open('artifacts/graphics/openal-ios-world-01/result.json'));print(d['status'])"
+
+      - name: Translate vanilla shaders to Metal
+        run: |
+          set -euo pipefail
+          cd src
+          time python3 -B tools/translate_shaders.py --sdk iphoneos \
+            --catalog artifacts/graphics/shader-catalog-03 \
+            --toolchain artifacts/graphics/shader-toolchain-03 \
+            --output artifacts/graphics/shaders-ios-world-01
+          python3 -c "import json;d=json.load(open('artifacts/graphics/shaders-ios-world-01/result.json'));print(d['status'],len(d.get('programs',[])))"
+
+      - name: Report
+        if: always()
+        run: |
+          set +e
+          du -sh src/artifacts/graphics/* 2>/dev/null
+          df -h /
+          find src/artifacts/graphics -name 'stderr.log' -size +0 | head -4 | while read f; do echo "-- $f"; tail -12 "$f"; done
+
+      - name: Save graphics artifacts
+        if: success()
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            src/artifacts/graphics/glfw-ios-world-01
+            src/artifacts/graphics/lwjgl-ios-world-01
+            src/artifacts/graphics/metal-ios-world-03
+            src/artifacts/graphics/openal-ios-world-01
+            src/artifacts/graphics/shaders-ios-world-01
+            src/artifacts/graphics/shader-toolchain-03
+            src/artifacts/graphics/shader-catalog-03
+          key: mcfao-stage3-${{ github.run_id }}
