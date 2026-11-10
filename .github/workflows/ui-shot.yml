@@ -28,7 +28,11 @@ jobs:
             <key>MinimumOSVersion</key><string>17.0</string>
             <key>UILaunchScreen</key><dict/>
             <key>UISupportedInterfaceOrientations</key>
-            <array><string>UIInterfaceOrientationPortrait</string></array>
+            <array>
+              <string>UIInterfaceOrientationPortrait</string>
+              <string>UIInterfaceOrientationLandscapeLeft</string>
+              <string>UIInterfaceOrientationLandscapeRight</string>
+            </array>
             <key>UIApplicationSceneManifest</key>
             <dict><key>UIApplicationSupportsMultipleScenes</key><false/></dict>
           </dict></plist>
@@ -78,3 +82,5 @@ jobs:
         if: failure()
         run: |
           xcrun simctl spawn "${UDID:-}" log show --last 3m --predicate 'process == "FabricAOT"' 2>/dev/null | tail -40 || true
+          ls -t ~/Library/Logs/DiagnosticReports/*.ips 2>/dev/null | head -3 | while read f; do
+            echo "== $f"; head -60 "$f"; done
