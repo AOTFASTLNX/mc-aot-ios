@@ -1,0 +1,64 @@
+name: ipa-launcher
+
+on:
+  workflow_dispatch:
+
+jobs:
+  ipa:
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build the launcher for arm64 iPhoneOS (unsigned)
+        run: |
+          set -euo pipefail
+          SDK=$(xcrun --sdk iphoneos --show-sdk-path)
+          APP="$PWD/build/Payload/FabricAOT.app"
+          mkdir -p "$APP"
+          cat > "$APP/Info.plist" <<'PLIST'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+            <key>CFBundleExecutable</key><string>FabricAOT</string>
+            <key>CFBundleIdentifier</key><string>dev.fabricaot.launcher</string>
+            <key>CFBundleName</key><string>FabricAOT</string>
+            <key>CFBundleDisplayName</key><string>FabricAOT</string>
+            <key>CFBundleShortVersionString</key><string>0.1</string>
+            <key>CFBundleVersion</key><string>1</string>
+            <key>MinimumOSVersion</key><string>17.0</string>
+            <key>UILaunchScreen</key><dict/>
+            <key>UIFileSharingEnabled</key><true/>
+            <key>LSSupportsOpeningDocumentsInPlace</key><true/>
+            <key>UISupportedInterfaceOrientations</key>
+            <array>
+              <string>UIInterfaceOrientationPortrait</string>
+              <string>UIInterfaceOrientationLandscapeLeft</string>
+              <string>UIInterfaceOrientationLandscapeRight</string>
+            </array>
+            <key>UIApplicationSceneManifest</key>
+            <dict><key>UIApplicationSupportsMultipleScenes</key><false/></dict>
+          </dict></plist>
+          PLIST
+          xcrun --sdk iphoneos clang \
+            -target arm64-apple-ios17.0 -isysroot "$SDK" \
+            -fobjc-arc -O2 -Wall \
+            -I ios \
+            ios/FAOTControlLayout.m ios/FAOTControlsOverlay.m \
+            ios/FAOTLauncherViewController.m ios/FAOTControlEditorViewController.m \
+            ios/smoke_main.m \
+            -framework UIKit -framework Foundation -framework CoreGraphics -framework QuartzCore \
+            -o "$APP/FabricAOT"
+          file "$APP/FabricAOT"
+          /usr/bin/lipo -info "$APP/FabricAOT"
+          cd build
+          /usr/bin/zip -qry FabricAOTLauncher.ipa Payload
+          ls -la FabricAOTLauncher.ipa
+          /usr/bin/shasum -a 256 FabricAOTLauncher.ipa
+
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: FabricAOTLauncher-ipa
+          path: build/FabricAOTLauncher.ipa
+          if-no-files-found: error
