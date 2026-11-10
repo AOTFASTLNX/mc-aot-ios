@@ -1,4 +1,4 @@
-﻿name: stage4-game-ipa
+name: stage4-game-ipa
 
 on:
   workflow_dispatch:
@@ -109,6 +109,20 @@ jobs:
           test -d "$G/openal-ios-world-01" || python3 -B tools/build_openal_soft.py --sdk iphoneos --output "$G/openal-ios-world-01"
           test -d "$G/shaders-ios-world-01" || python3 -B tools/translate_shaders.py --sdk iphoneos \
             --catalog "$G/shader-catalog-03" --toolchain "$G/shader-toolchain-03" --output "$G/shaders-ios-world-01"
+
+      - name: Cache the freshly built graphics libraries
+        if: success()
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            src/artifacts/graphics/glfw-ios-world-01
+            src/artifacts/graphics/lwjgl-ios-world-01
+            src/artifacts/graphics/metal-ios-world-03
+            src/artifacts/graphics/openal-ios-world-01
+            src/artifacts/graphics/shaders-ios-world-01
+            src/artifacts/graphics/shader-toolchain-03
+            src/artifacts/graphics/shader-catalog-03
+          key: mcfao-stage3-${{ github.run_id }}
 
       - name: Verify inputs
         run: |
