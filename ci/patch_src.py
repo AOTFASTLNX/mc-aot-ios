@@ -51,8 +51,14 @@ patch(
 )
 
 # 3. Xcode lives at /Applications/Xcode.app on the author's Mac; the CI image installs
-#    versioned bundles. This repo's tools spawn absolute /Applications/Xcode.app paths,
-#    so the workflow creates that symlink; nothing to patch there.
+#    versioned bundles and we symlink the generic name. Seatbelt resolves symlinks, so a
+#    rule naming "/Applications/Xcode.app" does not cover "/Applications/Xcode_26.3.app";
+#    widen the shader-toolchain sandbox to the bundle directory instead.
+patch(
+    "tools/prepare_shader_toolchain.py",
+    "'/System','/usr','/bin','/Library/Apple/System','/Applications/Xcode.app',CACHE,work",
+    "'/System','/usr','/bin','/Library/Apple/System','/Applications',CACHE,work",
+)
 
 # 4. A0 reference evidence: the committed copy is a Mac-launcher inventory with the
 #    author's absolute paths. Point the tool at the reference this workflow rebuilds.
