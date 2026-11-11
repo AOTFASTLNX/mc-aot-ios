@@ -198,7 +198,12 @@ for i in $(seq 1 60); do
 done
 xcrun simctl list devices | grep "$UDID" || true
 log "installing the app"
-xcrun simctl install "$UDID" "$APP" || die "simctl install failed"
+set +e
+INSTALL_OUT=$(xcrun simctl install "$UDID" "$APP" 2>&1)
+INSTALL_RC=$?
+set -e
+log "install rc=$INSTALL_RC: $INSTALL_OUT"
+[ "$INSTALL_RC" -eq 0 ] || die "simctl install failed"
 BUNDLE=$(/usr/libexec/PlistBuddy -c 'Print CFBundleIdentifier' "$APP/Info.plist")
 DATA=$(xcrun simctl get_app_container "$UDID" "$BUNDLE" data)
 mkdir -p "$DATA/Documents"
