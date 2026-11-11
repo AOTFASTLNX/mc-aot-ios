@@ -41,6 +41,10 @@ jobs:
           public class Probe { public static void main(String[] a) { System.out.println("x64->ios " + a.length); } }
           JAVA
           "$HOME_DIR/bin/javac" -d t t/Probe.java || exit 1
+          echo "===== control: host-target build on the same tools ====="
+          "$HOME_DIR/bin/native-image" --no-fallback -O1 -J-Xmx2g -cp t Probe -o out/hostprobe 2>&1 | tail -6
+          ./out/hostprobe 2>&1 || true
+          echo "===== experiment: IOS_AARCH64 target ====="
           "$HOME_DIR/bin/native-image" \
             --no-fallback -O1 --parallelism=2 \
             -J-Xmx4g \
