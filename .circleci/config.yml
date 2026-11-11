@@ -1,7 +1,7 @@
 version: 2.1
 
 jobs:
-  build-aot:
+  sim-run:
     macos:
       xcode: 27.1.0
     resource_class: m4pro.medium
@@ -12,33 +12,39 @@ jobs:
       SOURCE_REF: fix/ipados-mouse-trackpad-look
     steps:
       - run:
-          name: Host facts
+          name: Host and simulators
           command: |
             uname -m
             sysctl -n hw.memsize | awk '{printf "memory: %.1f GiB\n", $1/1073741824}'
             xcodebuild -version | head -2
+            xcrun simctl list runtimes | head -10
       - run:
-          name: Build the game IPA
+          name: Build and run in the simulator
           no_output_timeout: 45m
           command: |
             set -euo pipefail
-            mkdir -p ~/build && cd ~/build
-            curl -fsSL -o build_mac.sh https://raw.githubusercontent.com/zhangrongxue/mc-aot-ios/main/build_mac.sh
-            MCFAO_TOKEN="$MCFAO_TOKEN" HEAP_GIB=8 JOBS=6 AOT_PAR=4 SLIM_ASSETS=1 \
-              UPSTREAM="$UPSTREAM" SOURCE_REF="$SOURCE_REF" bash build_mac.sh
+            mkdir -p ~/sim && cd ~/sim
+            curl -fsSL -o build_sim.sh https://raw.githubusercontent.com/zhangrongxue/mc-aot-ios/main/ci/build_sim.sh
+            MCFAO_TOKEN="$MCFAO_TOKEN" bash build_sim.sh
       - store_artifacts:
-          path: ~/mcfao-build/FabricAOT-game.ipa
-          destination: FabricAOT-game.ipa
-      - store_artifacts:
-          path: ~/mcfao-build/build.log
+          path: ~/mcfao-sim/build.log
           destination: build.log
+      - store_artifacts:
+          path: ~/mcfao-sim/c0-logs
+          destination: c0-logs
+      - store_artifacts:
+          path: ~/mcfao-sim/latest.log
+          destination: latest.log
+      - store_artifacts:
+          path: ~/mcfao-sim/sim.png
+          destination: sim.png
       - run:
-          name: Tail of the log on failure
+          name: Tail on failure
           when: on_fail
           command: |
-            tail -40 ~/mcfao-build/build.log || true
+            tail -60 ~/mcfao-sim/build.log || true
 
 workflows:
-  build:
+  sim:
     jobs:
-      - build-aot
+      - sim-run
