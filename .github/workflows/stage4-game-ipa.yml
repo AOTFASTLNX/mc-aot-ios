@@ -1,4 +1,4 @@
-﻿name: stage4-game-ipa
+name: stage4-game-ipa
 
 on:
   workflow_dispatch:
