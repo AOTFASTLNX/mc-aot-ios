@@ -229,11 +229,12 @@ log "assets in place: $(du -sh "$DATA/Documents/assets" 2>/dev/null | cut -f1)"
 mkdir -p "$DATA/Documents/game"
 printf 'renderDistance:8\nsimulationDistance:5\nmaxFps:30\n' > "$DATA/Documents/game/options.txt"
 log "options written"
-BEFORE=$(ls "$DATA/Documents/c0-logs" 2>/dev/null | wc -l)
+mkdir -p "$DATA/Documents/c0-logs"
+BEFORE=$(ls "$DATA/Documents/c0-logs" 2>/dev/null | wc -l || true)
 xcrun simctl launch "$UDID" "$BUNDLE" || true
 for i in $(seq 1 60); do
   sleep 3
-  NOW=$(ls "$DATA/Documents/c0-logs" 2>/dev/null | wc -l)
+  NOW=$(ls "$DATA/Documents/c0-logs" 2>/dev/null | wc -l || true)
   if [ "$NOW" -gt "$BEFORE" ]; then break; fi
 done
 NEWEST=$(ls -t "$DATA/Documents/c0-logs"/*.log 2>/dev/null | head -1 || true)
