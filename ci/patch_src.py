@@ -16,10 +16,13 @@ from pathlib import Path
 SRC = Path(sys.argv[1] if len(sys.argv) > 1 else "src").resolve()
 
 
-def patch(rel: str, old: str, new: str) -> None:
+def patch(rel: str, old: str, new: str, optional: bool = False) -> None:
     path = SRC / rel
     text = path.read_text()
     count = text.count(old)
+    if count == 0 and optional:
+        print(f"skip {rel}: upstream no longer contains that text")
+        return
     if count != 1:
         raise SystemExit(f"{rel}: expected exactly 1 occurrence, found {count}:\n{old[:200]}")
     path.write_text(text.replace(old, new))
@@ -33,6 +36,18 @@ patch(
     '        "/Users/kexin/.gradle/wrapper/dists/gradle-*-bin/*/gradle-*/lib/asm-tree-%s.jar" % ASM_VERSION,',
     '        str(CACHE / ("asm-%s.jar" % ASM_VERSION)),\n'
     '        str(CACHE / ("asm-tree-%s.jar" % ASM_VERSION)),',
+    optional=True,
+)
+# Upstream now resolves the Gradle path through Path.home(); consult the local cache first so a
+# host without a Gradle distribution still finds the vendored jars.
+patch(
+    "tools/build_method_splitter.py",
+    "    found = {}\n    for pattern in patterns:",
+    "    found = {}\n"
+    '    for name in ("asm-%s.jar" % ASM_VERSION, "asm-tree-%s.jar" % ASM_VERSION):\n'
+    "        if (CACHE / name).exists():\n"
+    "            found[name] = CACHE / name\n"
+    "    for pattern in patterns:",
 )
 patch(
     "tools/build_method_splitter.py",
