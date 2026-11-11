@@ -149,6 +149,15 @@ patch(
     '"-H:+RemoveSaturatedTypeFlows","-H:TypeFlowSaturationCutoff=4000",',
 )
 
+# 6c. Every split method in a class shared the same helper prefix, so splitting two methods of
+#     one class produced duplicate "fabricaot$part$1" entries (ClassFormatError in BlockStateData).
+patch(
+    "compiler/splitter/src/fabricaot/split/MethodSplitter.java",
+    'String prefix = method.name.equals("<clinit>") ? "fabricaot$init$" : "fabricaot$part$";',
+    'String safe = method.name.replace(\'<\', \'_\').replace(\'>\', \'_\');\n'
+    '        String prefix = method.name.equals("<clinit>") ? "fabricaot$init$"\n'
+    '                : "fabricaot$" + safe + "$part$";',
+)
 # 7. The iPadOS pointer bridge (fix/ipados-mouse-trackpad-look) uses Swift-style dot syntax
 #    in Objective-C, which clang rejects: NSThread.isMainThread -> [NSThread isMainThread].
 patch(
