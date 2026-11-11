@@ -149,12 +149,34 @@ APP=$(find "$DERIVED/Build/Products" -maxdepth 2 -name '*.app' | head -1)
 log "app: $APP"
 
 log "simulator run"
-RUNTIME=$(xcrun simctl list runtimes | grep -o 'com\.apple\.CoreSimulator\.SimRuntime\.iOS-[0-9-]*' | tail -1)
-DEVTYPE=$(xcrun simctl list devicetypes | grep -o 'com\.apple\.CoreSimulator\.SimDeviceType\.iPhone-1[6-9][A-Za-z0-9-]*' | head -1)
-[ -n "$RUNTIME" ] || die "no simulator runtime"
-[ -n "$DEVTYPE" ] || DEVTYPE=$(xcrun simctl list devicetypes | grep -o 'com\.apple\.CoreSimulator\.SimDeviceType\.iPhone-[A-Za-z0-9-]*' | head -1)
-UDID=$(xcrun simctl create "mcfao-sim-$(date +%H%M%S)" "$DEVTYPE" "$RUNTIME")
-log "simulator $UDID ($DEVTYPE / $RUNTIME)"
+UDID=$(python3 - <<'PY'
+import json, subprocess, sys
+def simctl(*args):
+    return subprocess.run(["xcrun", "simctl", *args], capture_output=True, text=True, check=True).stdout
+runtimes = json.loads(simctl("list", "runtimes", "-j"))["runtimes"]
+usable = [r for r in runtimes if r.get("isAvailable") and "iOS" in r.get("identifier", "")]
+if not usable:
+    print("", end="")
+    sys.exit(0)
+runtime = usable[-1]
+devices = json.loads(simctl("list", "devices", "-j"))["devices"]
+for runtime_id, entries in devices.items():
+    if runtime_id != runtime["identifier"]:
+        continue
+    phones = [d for d in entries if d.get("isAvailable") and "iPhone" in d.get("name", "")]
+    if phones:
+        print(phones[0]["udid"], end="")
+        sys.exit(0)
+types = [t for t in runtime.get("supportedDeviceTypes", []) if "iPhone" in t.get("name", "")]
+if not types:
+    print("", end="")
+    sys.exit(0)
+created = simctl("create", "mcfao-sim", types[0]["identifier"], runtime["identifier"]).strip()
+print(created, end="")
+PY
+)
+[ -n "$UDID" ] || die "no usable simulator"
+log "simulator $UDID"
 xcrun simctl bootstatus "$UDID" -b
 xcrun simctl install "$UDID" "$APP"
 BUNDLE=$(/usr/libexec/PlistBuddy -c 'Print CFBundleIdentifier' "$APP/Info.plist")
