@@ -58,7 +58,7 @@ def name_of(pool, ref) -> str:
     return pool[value][1]
 
 
-def parse(data: bytes) -> None:
+def parse(data: bytes, methods: bool = False) -> None:
     pool, offset = read_pool(data)
     access, this_class, _super = struct.unpack_from(">HHH", data, offset)
     offset += 6
@@ -74,15 +74,27 @@ def parse(data: bytes) -> None:
             _n, length = struct.unpack_from(">HI", data, offset)
             offset += 6 + length
         print(f"    {pool[f_name][1]:45s} {flags(f_access)}")
+    if methods:
+        mcount = struct.unpack_from(">H", data, offset)[0]
+        offset += 2
+        print(f"  methods={mcount}")
+        for _ in range(mcount):
+            m_access, m_name, m_desc, attrs = struct.unpack_from(">HHHH", data, offset)
+            offset += 8
+            for _ in range(attrs):
+                _n, length = struct.unpack_from(">HI", data, offset)
+                offset += 6 + length
+            print(f"    {pool[m_name][1]:45s} {pool[m_desc][1][:25]:25s} {flags(m_access)}")
 
 
 def main() -> int:
     jar, wanted = sys.argv[1], sys.argv[2]
+    methods = "--methods" in sys.argv
     with zipfile.ZipFile(jar) as archive:
         for name in archive.namelist():
             if name.endswith(".class") and wanted in name:
                 print(f"-- {jar}: {name}")
-                parse(archive.read(name))
+                parse(archive.read(name), methods)
     return 0
 
 

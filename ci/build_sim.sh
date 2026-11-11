@@ -119,6 +119,10 @@ time python3 -B tools/probe_client_graph.py \
   --full-build --relocatable --include-game-resources --heap-gib "$HEAP_GIB" --parallelism "$AOT_PAR" \
   --output artifacts/ci/aot
 
+log "diagnostic: EnvironmentAttributes members in the split jar"
+python3 "$WORK/repo/ci/classdump.py" artifacts/ci/client-split.jar EnvironmentAttributes --methods | grep -E 'class |init|part|methods=' | head -25 || true
+log "diagnostic: same class in the injected jar"
+python3 "$WORK/repo/ci/classdump.py" artifacts/ci/injected/client-26.1.2-metal.jar EnvironmentAttributes --methods | grep -E 'class |init|part|methods=' | head -25 || true
 log "link for the simulator"
 OBJ=$(python3 -c "import json;print(json.load(open('artifacts/ci/aot/result.json'))['imageObject']['path'])")
 time python3 -B tools/build_ios_runtime.py --sdk iphonesimulator --with-extnet \
