@@ -149,10 +149,10 @@ APP=$(find "$DERIVED/Build/Products" -maxdepth 2 -name '*.app' | head -1)
 log "app: $APP"
 
 log "simulator run"
-RUNTIME=$(xcrun simctl list runtimes | grep -E 'iOS [0-9]+' | tail -1 | sed -E 's/.*(com\.apple\.CoreSimulator\.SimRuntime\.iOS-[0-9-]+).*/\1/')
-DEVTYPE=$(xcrun simctl list devicetypes | grep -E 'iPhone 1[6-9]' | head -1 | sed -E 's/.*(com\.apple\.CoreSimulator\.SimDeviceType\.[^ ]+).*/\1/')
+RUNTIME=$(xcrun simctl list runtimes | grep -o 'com\.apple\.CoreSimulator\.SimRuntime\.iOS-[0-9-]*' | tail -1)
+DEVTYPE=$(xcrun simctl list devicetypes | grep -o 'com\.apple\.CoreSimulator\.SimDeviceType\.iPhone-1[6-9][A-Za-z0-9-]*' | head -1)
 [ -n "$RUNTIME" ] || die "no simulator runtime"
-[ -n "$DEVTYPE" ] || DEVTYPE=$(xcrun simctl list devicetypes | grep iPhone | head -1 | sed -E 's/.*(com\.apple\.CoreSimulator\.SimDeviceType\.[^ ]+).*/\1/')
+[ -n "$DEVTYPE" ] || DEVTYPE=$(xcrun simctl list devicetypes | grep -o 'com\.apple\.CoreSimulator\.SimDeviceType\.iPhone-[A-Za-z0-9-]*' | head -1)
 UDID=$(xcrun simctl create "mcfao-sim-$(date +%H%M%S)" "$DEVTYPE" "$RUNTIME")
 log "simulator $UDID ($DEVTYPE / $RUNTIME)"
 xcrun simctl bootstatus "$UDID" -b
