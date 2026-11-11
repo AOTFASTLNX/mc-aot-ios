@@ -1,0 +1,20 @@
+version: 2.1
+
+jobs:
+  probe:
+    macos:
+      xcode: 26.2.0
+    resource_class: macos.m1.large.gen1
+    steps:
+      - run:
+          name: Host facts
+          command: |
+            uname -m
+            sysctl -n hw.ncpu
+            sysctl -n hw.memsize | awk '{printf "memory: %.1f GiB\n", $1/1073741824}'
+            xcodebuild -version | head -2
+
+workflows:
+  probe-workflow:
+    jobs:
+      - probe
