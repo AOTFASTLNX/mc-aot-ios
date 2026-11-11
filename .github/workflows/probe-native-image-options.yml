@@ -1,4 +1,4 @@
-name: probe-native-image-options
+﻿name: probe-native-image-options
 
 on:
   workflow_dispatch:
@@ -14,17 +14,18 @@ jobs:
           curl -fsSL -o graalvm.tgz \
             https://github.com/graalvm/graalvm-ce-builds/releases/download/jdk-25.0.2/graalvm-community-jdk-25.0.2_macos-aarch64_bin.tar.gz
           mkdir -p gn && tar -xzf graalvm.tgz -C gn --strip-components=1
-          ./gn/bin/native-image --version
+          ./gn/Contents/Home/bin/native-image --version
 
       - name: Dump analysis/typeflow related options
         run: |
           set +e
-          ./gn/bin/native-image -H:+UnlockExperimentalVMOptions --help 2>&1 \
+          ./gn/Contents/Home/bin/native-image -H:+UnlockExperimentalVMOptions --help 2>&1 \
             | grep -iE 'saturat|typeflow|type flow|analysis' | head -60
           echo "=== expert help ==="
-          ./gn/bin/native-image -H:+UnlockExperimentalVMOptions --help:expert 2>&1 \
+          ./gn/Contents/Home/bin/native-image -H:+UnlockExperimentalVMOptions --help:expert 2>&1 \
             | grep -iE 'saturat|typeflow|type flow|TrackPrimitive|UsePredicates|analysis' | head -60
           echo "=== scan svm jar for option keys ==="
-          for j in $(find ./gn/lib/svm -name '*.jar' | head -20); do
+          for j in $(find ./gn/Contents/Home/lib/svm -name '*.jar' | head -20); do
             unzip -p "$j" 2>/dev/null | strings 2>/dev/null | grep -oE 'RemoveSaturatedTypeFlows|SaturatedTypeFlows|MaxTypeFlow[A-Za-z]*|TypeFlowSaturation[A-Za-z]*' | sort -u
           done | sort -u | head -40
+
