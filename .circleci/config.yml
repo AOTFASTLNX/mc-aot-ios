@@ -1,7 +1,14 @@
 version: 2.1
 
 jobs:
-  probe:
+  docker-check:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - run: echo "docker job is alive on $(date -u)"
+
+  mac-check:
     macos:
       xcode: 27.1.0
     resource_class: m4pro.medium
@@ -10,16 +17,11 @@ jobs:
           name: Host facts
           command: |
             uname -m
-            sysctl -n hw.ncpu
             sysctl -n hw.memsize | awk '{printf "memory: %.1f GiB\n", $1/1073741824}'
-            sw_vers
             xcodebuild -version
-            xcrun --sdk iphoneos --show-sdk-version
-            command -v python3 && python3 -V
-            command -v brew && brew --version | head -1
-            df -h / | tail -1
 
 workflows:
-  probe-workflow:
+  check:
     jobs:
-      - probe
+      - docker-check
+      - mac-check
