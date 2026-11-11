@@ -1,0 +1,59 @@
+name: probe-linux-ios-aot
+
+on:
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Host facts
+        run: |
+          uname -m; nproc; free -g; df -h /
+
+      - name: Fetch GraalVM CE 25.0.2 for linux-aarch64
+        run: |
+          set -euo pipefail
+          curl -fsSL -o graalvm.tgz \
+            https://github.com/graalvm/graalvm-ce-builds/releases/download/jdk-25.0.2/graalvm-community-jdk-25.0.2_linux-aarch64_bin.tar.gz
+          mkdir -p gn
+          tar -xzf graalvm.tgz -C gn --strip-components=1
+          ./gn/bin/java -version
+          ./gn/bin/native-image --version
+
+      - name: iOS target probe
+        run: |
+          set -euo pipefail
+          mkdir -p t
+          cat > t/Probe.java <<'JAVA'
+          public class Probe {
+              public static void main(String[] args) {
+                  System.out.println("linux-ios-probe " + args.length);
+              }
+          }
+          JAVA
+          ./gn/bin/javac -d t t/Probe.java
+          mkdir -p out
+          set +e
+          ./gn/bin/native-image \
+            --no-fallback -O1 --parallelism=2 \
+            -H:+UnlockExperimentalVMOptions \
+            -H:-CheckToolchain -H:+ExitAfterRelocatableImageWrite \
+            -H:PageSize=16384 \
+            -Dsvm.targetName=iOS -Dsvm.targetArch=arm64 \
+            -Dsvm.platform=org.graalvm.nativeimage.Platform\$IOS_AARCH64 \
+            -cp t Probe -o out/probe 2>&1 | tail -30
+          echo "exit=$?"
+          ls -la out || true
+          find . -name '*.o' | head
+
+      - name: Report
+        if: always()
+        run: |
+          set +x
+          echo "== artifacts =="
+          find . -name '*.o' -o -name 'probe*' | head -20
+          du -sh out 2>/dev/null || true
