@@ -172,15 +172,20 @@ for runtime_id, entries in devices.items():
             print(device["udid"], end="")
             sys.exit(0)
 
-types = json.loads(simctl("list", "devicetypes", "-j"))["devicetypes"]
-candidates = [d["identifier"] for d in types
-              if "iPhone" in d.get("name", "") and "Duo" not in d.get("name", "")]
-print("# device types:", candidates[:5], file=sys.stderr)
-for identifier in candidates:
+import re
+supported = [d.get("identifier") for d in (usable[-1].get("supportedDeviceTypes") or [])
+             if "iPhone" in d.get("name", "") and "Duo" not in d.get("name", "")]
+if not supported:
+    types = json.loads(simctl("list", "devicetypes", "-j"))["devicetypes"]
+    supported = [d["identifier"] for d in types
+                 if "iPhone" in d.get("name", "") and "Duo" not in d.get("name", "")]
+print("# device types:", supported[:5], file=sys.stderr)
+for identifier in supported:
     created = simctl("create", "mcfao-sim", identifier, runtime).strip()
-    if created and "-" in created:
+    if re.fullmatch(r"[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}", created):
         print(created, end="")
         sys.exit(0)
+    print("# create failed for", identifier, "->", created[:120], file=sys.stderr)
 PY
 )
 [ -n "$UDID" ] || die "no usable simulator"
