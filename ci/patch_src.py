@@ -158,6 +158,17 @@ patch(
     '        String prefix = method.name.equals("<clinit>") ? "fabricaot$init$"\n'
     '                : "fabricaot$" + safe + "$part$";',
 )
+# 6d. Iteration speed: the 439 MB asset tree does not have to travel inside every IPA. When the
+#     assets were pushed into the app container once, prefer that copy over the bundle.
+patch(
+    "ios/C0Harness/main.m",
+    '        NSString *assets = [NSBundle.mainBundle.resourcePath stringByAppendingPathComponent:@"assets"];',
+    '        NSString *staged = [FAOTDocuments() stringByAppendingPathComponent:@"assets"];\n'
+    '        NSString *bundled = [NSBundle.mainBundle.resourcePath stringByAppendingPathComponent:@"assets"];\n'
+    '        NSString *assets = [[NSFileManager.defaultManager fileExistsAtPath:\n'
+    '            [staged stringByAppendingPathComponent:@"indexes/30.json"]] ? staged : bundled;\n',
+    optional=True,
+)
 # 7. The iPadOS pointer bridge (fix/ipados-mouse-trackpad-look) uses Swift-style dot syntax
 #    in Objective-C, which clang rejects: NSThread.isMainThread -> [NSThread isMainThread].
 patch(

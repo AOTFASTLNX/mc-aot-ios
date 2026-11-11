@@ -231,6 +231,11 @@ xcodebuild -project ios/C0Harness/C0Harness.xcodeproj -scheme WorldDevice \
   build | tail -25
 APP=$(find "$G/world-device-01/DerivedData/Build/Products" -maxdepth 2 -name '*.app' | head -1)
 test -n "$APP" || die "no .app produced"
+if [ "${SLIM_ASSETS:-0}" = "1" ] && [ -d "$APP/assets" ]; then
+  log "slim: dropping the bundled asset tree (they are pushed into the app container instead)"
+  du -sh "$APP/assets" || true
+  rm -rf "$APP/assets"
+fi
 rm -rf dist Payload
 mkdir -p dist/Payload
 cp -R "$APP" dist/Payload/
