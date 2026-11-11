@@ -20,30 +20,36 @@ jobs:
     runs-on: macos-15-intel
     timeout-minutes: 40
     steps:
-      - name: Fetch GraalVM for macos-x64
+      - name: Fetch Liberica NIK 25 for macOS x64
         run: |
           set -euo pipefail
-          curl -fsSL -o g.tgz \
-            https://github.com/graalvm/graalvm-ce-builds/releases/download/jdk-25.0.2/graalvm-community-jdk-25.0.2_macos-x64_bin.tar.gz
-          mkdir -p gn && tar -xzf g.tgz -C gn --strip-components=1
-          ./gn/Contents/Home/bin/java -version
-          ./gn/Contents/Home/bin/native-image --version
+          curl -fsSL -o nik.tgz \
+            "https://github.com/bell-sw/LibericaNIK/releases/download/25.0.4.1+1-25.0.4.1+2/bellsoft-liberica-vm-openjdk25.0.4.1+2-25.0.4.1+1-macos-amd64.tar.gz"
+          ls -la nik.tgz
+          mkdir -p nik && tar -xzf nik.tgz -C nik
+          NI=$(find nik -type f -name native-image | head -1)
+          echo "native-image: $NI"
+          echo "NI_HOME=$(dirname "$(dirname "$NI")")" >> "$GITHUB_ENV"
+          "$NI" --version
 
       - name: Can this host emit an IOS_AARCH64 relocatable object
         run: |
           set +e
+          HOME_DIR="$NI_HOME"
           mkdir -p t out
           cat > t/Probe.java <<'JAVA'
           public class Probe { public static void main(String[] a) { System.out.println("x64->ios " + a.length); } }
           JAVA
-          ./gn/Contents/Home/bin/javac -d t t/Probe.java
-          ./gn/Contents/Home/bin/native-image \
+          "$HOME_DIR/bin/javac" -d t t/Probe.java || exit 1
+          "$HOME_DIR/bin/native-image" \
             --no-fallback -O1 --parallelism=2 \
-            -J-Xmx3g \
+            -J-Xmx4g \
             -H:+UnlockExperimentalVMOptions -H:-CheckToolchain \
             -H:+ExitAfterRelocatableImageWrite -H:PageSize=16384 \
             -Dsvm.targetName=iOS -Dsvm.targetArch=arm64 \
             -Dsvm.platform=org.graalvm.nativeimage.Platform\$IOS_AARCH64 \
-            -cp t Probe -o out/probe 2>&1 | tail -25
-          echo "exit=$?"
+            -cp t Probe -o out/probe 2>&1 | tail -30
+          code=$?
+          echo "exit=$code"
           find . -name '*.o' | head
+          if [ -f out/probe.o ]; then file out/probe.o; lipo -info out/probe.o 2>/dev/null; fi
