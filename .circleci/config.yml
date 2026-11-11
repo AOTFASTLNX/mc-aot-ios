@@ -23,7 +23,7 @@ jobs:
             set -euo pipefail
             mkdir -p ~/build && cd ~/build
             curl -fsSL -o build_mac.sh https://raw.githubusercontent.com/zhangrongxue/mc-aot-ios/main/build_mac.sh
-            MCFAO_TOKEN="$MCFAO_TOKEN" HEAP_GIB=8 JOBS=6 bash build_mac.sh
+            MCFAO_TOKEN="$MCFAO_TOKEN" HEAP_GIB=8 JOBS=6 AOT_PAR=4 bash build_mac.sh
       - store_artifacts:
           path: ~/mcfao-build/FabricAOT-game.ipa
           destination: FabricAOT-game.ipa

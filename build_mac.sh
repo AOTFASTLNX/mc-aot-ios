@@ -12,6 +12,7 @@ CI_REPO="${CI_REPO:-https://github.com/zhangrongxue/mc-aot-ios}"
 UPSTREAM="${UPSTREAM:-https://github.com/kexinOvO/MCFAO}"
 HEAP_GIB="${HEAP_GIB:-8}"
 JOBS="${JOBS:-4}"
+AOT_PAR="${AOT_PAR:-4}"
 
 log() { printf '\n=== [%s] %s ===\n' "$(date +%H:%M:%S)" "$*"; }
 die() { printf 'FATAL: %s\n' "$*" >&2; exit 1; }
@@ -170,7 +171,7 @@ time python3 -B tools/probe_client_graph.py \
   --graphics-bridge artifacts/graphics/lwjgl-ios-world-01 \
   --metal-bootstrap artifacts/graphics/metal-ios-world-03 \
   --full-build --relocatable --include-game-resources \
-  --heap-gib "$HEAP_GIB" --parallelism "$JOBS" \
+  --heap-gib "$HEAP_GIB" --parallelism "$AOT_PAR" \
   --output artifacts/ci/aot
 python3 -c "import json;d=json.load(open('artifacts/ci/aot/result.json'));print(d['status'],d.get('imageObject',{}).get('bytes'))"
 
