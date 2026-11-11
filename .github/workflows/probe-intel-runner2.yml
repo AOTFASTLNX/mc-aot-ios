@@ -44,8 +44,9 @@ jobs:
           "$HOME_DIR/bin/native-image" \
             --no-fallback -O1 --parallelism=2 \
             -J-Xmx4g \
-            -H:+UnlockExperimentalVMOptions -H:-CheckToolchain \
+            -H:+UnlockExperimentalVMOptions \
             -H:+ExitAfterRelocatableImageWrite -H:PageSize=16384 \
+            -H:CCompilerPath="$(xcrun --find clang)" \
             -Dsvm.targetName=iOS -Dsvm.targetArch=arm64 \
             -Dsvm.platform=org.graalvm.nativeimage.Platform\$IOS_AARCH64 \
             -cp t Probe -o out/probe 2>&1 | tail -30
