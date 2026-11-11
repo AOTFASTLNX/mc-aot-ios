@@ -27,10 +27,10 @@ jobs:
             "https://github.com/bell-sw/LibericaNIK/releases/download/25.0.4.1+1-25.0.4.1+2/bellsoft-liberica-vm-openjdk25.0.4.1+2-25.0.4.1+1-macos-amd64.tar.gz"
           ls -la nik.tgz
           mkdir -p nik && tar -xzf nik.tgz -C nik
-          NI=$(find nik -type f -path "*/Contents/Home/bin/native-image" | head -1)
-          echo "native-image: $NI"
-          echo "NI_HOME=$(dirname "$(dirname "$NI")")" >> "$GITHUB_ENV"
-          "$NI" --version
+          HOME_DIR=$(ls -d nik/*/Contents/Home | head -1)
+          echo "NI_HOME=$HOME_DIR" >> "$GITHUB_ENV"
+          ls "$HOME_DIR/bin" | head
+          "$HOME_DIR/bin/native-image" --version
 
       - name: Can this host emit an IOS_AARCH64 relocatable object
         run: |
