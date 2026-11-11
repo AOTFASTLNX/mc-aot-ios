@@ -145,6 +145,15 @@ patch(
     '"-H:+RemoveSaturatedTypeFlows","-H:TypeFlowSaturationCutoff=4000",',
 )
 
+# 6a. The splitter drops ACC_FINAL from same-class fields a moved body assigns. Interface
+#     constants must stay public static final, so splitting an interface's <clinit> produced
+#     an unloadable class (ClassFormatError on net.minecraft.world.attribute.EnvironmentAttributes).
+patch(
+    "compiler/splitter/src/fabricaot/split/MethodSplitter.java",
+    "    private static int unfinaliseAssignedFinals(ClassNode owner, MethodNode method) {",
+    "    private static int unfinaliseAssignedFinals(ClassNode owner, MethodNode method) {\n"
+    "        if ((owner.access & Opcodes.ACC_INTERFACE) != 0) { return 0; }  // interface constants stay final\n",
+)
 # 6b. The builder only offers parallel/g1. Serial has the smallest auxiliary footprint,
 #     which matters when the heap is capped by a 7 GiB host; expose it as a third choice.
 patch(
