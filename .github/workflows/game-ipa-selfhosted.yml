@@ -1,0 +1,59 @@
+name: game-ipa-selfhosted
+
+# Runs the upstream project's own CLI on a Mac that already has its artifacts.
+# The repository is not checked out here: it lives at the path below on that machine.
+on:
+  workflow_dispatch:
+    inputs:
+      repo_path:
+        description: path to the MCFAO checkout on the Mac
+        required: false
+        default: /Users/kexin/Documents/ChatGPT/MCFAO
+      variant:
+        description: vanilla or fabric
+        required: false
+        default: vanilla
+
+jobs:
+  build:
+    runs-on: [self-hosted, macOS, arm64]
+    timeout-minutes: 120
+    steps:
+      - name: Show host
+        run: |
+          sw_vers; uname -m; sysctl -n hw.memsize | awk '{printf "%.1f GiB\n", $1/1073741824}'
+          xcode-select -p; xcodebuild -version
+
+      - name: Build with the project CLI
+        working-directory: ${{ inputs.repo_path }}
+        run: |
+          set -euo pipefail
+          test -f mcfao
+          STAMP=$(date +%Y%m%d-%H%M%S)
+          OUT="artifacts/mcfao/ci-$STAMP"
+          ./mcfao doctor --config ./mcfao.local.json
+          ./mcfao build --version 26.1.2 --loader "${{ inputs.variant }}" --target ios-arm64 \
+            --config ./mcfao.local.json --output "$OUT"
+          ./mcfao verify --target ios-arm64 --output "$OUT"
+          ./mcfao export --target ios-arm64 --build "$OUT" \
+            --export-options ios/C0Harness/ExportOptions.plist \
+            --output "$OUT-ipa"
+          echo "OUT=$OUT" >> "$GITHUB_ENV"
+          find "$OUT-ipa" -name '*.ipa' -maxdepth 3 -print
+
+      - name: Upload the IPA
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fabricaot-game-ipa
+          path: ${{ inputs.repo_path }}/artifacts/mcfao/**/export/*.ipa
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Report the tail of the build log when it fails
+        if: failure()
+        run: |
+          set +e
+          cd "${{ inputs.repo_path }}"
+          ls -t artifacts/mcfao | head -5
+          find artifacts/mcfao -name 'stderr.log' -newermt '-2 hours' | head -5 | while read f; do echo "-- $f"; tail -30 "$f"; done
