@@ -18,12 +18,16 @@ SRC = Path(sys.argv[1] if len(sys.argv) > 1 else "src").resolve()
 FAILURES: list[str] = []
 
 
-def patch(rel: str, old: str, new: str, optional: bool = False) -> None:
+def patch(rel: str, old: str, new: str, optional: bool = False, every: bool = False) -> None:
     path = SRC / rel
     text = path.read_text()
     count = text.count(old)
     if count == 0 and optional:
         print(f"skip {rel}: upstream no longer contains that text")
+        return
+    if every and count >= 1:
+        path.write_text(text.replace(old, new))
+        print(f"patched {rel} ({count} occurrences)")
         return
     if count != 1:
         message = f"{rel}: expected exactly 1 occurrence, found {count}:\n{old[:200]}"
@@ -145,6 +149,14 @@ patch(
     '"-H:+RemoveSaturatedTypeFlows","-H:TypeFlowSaturationCutoff=4000",',
 )
 
+# 7. The iPadOS pointer bridge (fix/ipados-mouse-trackpad-look) uses Swift-style dot syntax
+#    in Objective-C, which clang rejects: NSThread.isMainThread -> [NSThread isMainThread].
+patch(
+    "ios/glfw-lite/uikit_surface.m",
+    "NSThread.isMainThread",
+    "[NSThread isMainThread]",
+    every=True,
+)
 # 6a. The splitter drops ACC_FINAL from same-class fields a moved body assigns. Interface
 #     constants must stay public static final, so splitting an interface's <clinit> produced
 #     an unloadable class (ClassFormatError on net.minecraft.world.attribute.EnvironmentAttributes).

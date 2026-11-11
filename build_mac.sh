@@ -10,6 +10,7 @@ set -euo pipefail
 WORK="${WORK:-$HOME/mcfao-build}"
 CI_REPO="${CI_REPO:-https://github.com/zhangrongxue/mc-aot-ios}"
 UPSTREAM="${UPSTREAM:-https://github.com/kexinOvO/MCFAO}"
+SOURCE_REF="${SOURCE_REF:-}"   # optional: branch of a public copy of the source
 HEAP_GIB="${HEAP_GIB:-8}"
 JOBS="${JOBS:-4}"
 AOT_PAR="${AOT_PAR:-4}"
@@ -34,7 +35,11 @@ if [ ! -d repo/.git ]; then
   git clone --depth 1 "$CI_REPO" repo
 fi
 if [ ! -d src/.git ]; then
-  git clone --depth 1 "https://x-access-token:${MCFAO_TOKEN}@${UPSTREAM#https://}" src
+  if [ -n "$SOURCE_REF" ]; then
+    git clone --depth 1 --branch "$SOURCE_REF" "$UPSTREAM" src
+  else
+    git clone --depth 1 "https://x-access-token:${MCFAO_TOKEN}@${UPSTREAM#https://}" src
+  fi
 fi
 cd repo && git pull --ff-only -q || true
 cd "$WORK"
