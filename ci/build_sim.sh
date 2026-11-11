@@ -189,7 +189,16 @@ PY
 [ -n "$UDID" ] || die "no usable simulator"
 log "simulator $UDID"
 xcrun simctl bootstatus "$UDID" -b || log "boot status did not report ready; continuing"
-xcrun simctl install "$UDID" "$APP"
+for i in $(seq 1 60); do
+  if xcrun simctl list devices | grep "$UDID" | grep -q "Booted"; then
+    log "simulator is Booted"
+    break
+  fi
+  sleep 3
+done
+xcrun simctl list devices | grep "$UDID" || true
+log "installing the app"
+xcrun simctl install "$UDID" "$APP" || die "simctl install failed"
 BUNDLE=$(/usr/libexec/PlistBuddy -c 'Print CFBundleIdentifier' "$APP/Info.plist")
 DATA=$(xcrun simctl get_app_container "$UDID" "$BUNDLE" data)
 mkdir -p "$DATA/Documents"
