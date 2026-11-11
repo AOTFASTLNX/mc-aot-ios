@@ -113,4 +113,20 @@ patch(
     '"-H:+RemoveSaturatedTypeFlows","-H:TypeFlowSaturationCutoff=4000",',
 )
 
+# 6b. The builder only offers parallel/g1. Serial has the smallest auxiliary footprint,
+#     which matters when the heap is capped by a 7 GiB host; expose it as a third choice.
+patch(
+    "tools/probe_client_graph.py",
+    'parser.add_argument("--builder-gc", choices=("parallel", "g1"), default="parallel")',
+    'parser.add_argument("--builder-gc", choices=("parallel", "g1", "serial"), default="parallel")',
+)
+patch(
+    "tools/probe_client_graph.py",
+    '    if args.builder_gc=="g1":',
+    '    if args.builder_gc=="serial":\n'
+    '        cmd[cmd.index("-J-XX:-UsePerfData"):cmd.index("-J-XX:-UsePerfData")]=[\n'
+    '        "-J-XX:-UseParallelGC","-J-XX:+UseSerialGC"]\n'
+    '    if args.builder_gc=="g1":',
+)
+
 print("all patches applied")

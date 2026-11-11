@@ -1,4 +1,4 @@
-name: stage4-game-ipa
+﻿name: stage4-game-ipa
 
 on:
   workflow_dispatch:
@@ -15,6 +15,10 @@ on:
         description: native-image parallelism 1..4
         required: false
         default: "4"
+      builder_gc:
+        description: builder GC: parallel | g1 | serial
+        required: false
+        default: parallel
       min_sites:
         description: splitter minimum invocation sites per method
         required: false
@@ -206,7 +210,7 @@ jobs:
             --graphics-bridge artifacts/graphics/lwjgl-ios-world-01 \
             --metal-bootstrap artifacts/graphics/metal-ios-world-03 \
             --full-build --relocatable --include-game-resources \
-            --heap-gib "${{ inputs.heap_gib }}" --parallelism "${{ inputs.parallelism }}" \
+            --heap-gib "${{ inputs.heap_gib }}" --parallelism "${{ inputs.parallelism }}" --builder-gc "${{ inputs.builder_gc }}" \
             --output artifacts/ci/aot
           python3 -c "import json;d=json.load(open('artifacts/ci/aot/result.json'));print(d['status'],d.get('imageObject',{}).get('bytes'))"
 
@@ -289,6 +293,7 @@ jobs:
             src/artifacts/**/stdout.log
           retention-days: 3
           if-no-files-found: ignore
+
 
 
 
