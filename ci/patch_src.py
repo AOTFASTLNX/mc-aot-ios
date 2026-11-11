@@ -170,6 +170,40 @@ patch(
     '        NSString *assets = stagedReady ? staged : bundled;\n',
     optional=True,
 )
+# 6e. Generated helpers living in an interface must be public: a private static interface
+#     method produced IllegalAccessError at run time (EnvironmentAttributes.fabricaot$init$1).
+patch(
+    "compiler/splitter/src/fabricaot/split/MethodSplitter.java",
+    "/** Drop ACC_FINAL from same-class fields this method assigns; returns how many changed. */",
+    "/** Generated members must be accessible from the interface that owns them. */\n"
+    "    private static int partAccessFlags(ClassNode owner) {\n"
+    "        if ((owner.access & Opcodes.ACC_INTERFACE) != 0) {\n"
+    "            return Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC | Opcodes.ACC_SYNTHETIC;\n"
+    "        }\n"
+    "        return Opcodes.ACC_PRIVATE | Opcodes.ACC_STATIC | Opcodes.ACC_SYNTHETIC;\n"
+    "    }\n"
+    "\n"
+    "    /** Interface fields must stay public static final. */\n"
+    "    private static int spillFieldAccessFlags(ClassNode owner) {\n"
+    "        if ((owner.access & Opcodes.ACC_INTERFACE) != 0) {\n"
+    "            return Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC | Opcodes.ACC_FINAL | Opcodes.ACC_SYNTHETIC;\n"
+    "        }\n"
+    "        return Opcodes.ACC_PRIVATE | Opcodes.ACC_STATIC | Opcodes.ACC_SYNTHETIC;\n"
+    "    }\n"
+    "\n"
+    "/** Drop ACC_FINAL from same-class fields this method assigns; returns how many changed. */",
+)
+patch(
+    "compiler/splitter/src/fabricaot/split/MethodSplitter.java",
+    "MethodNode(Opcodes.ACC_PRIVATE | Opcodes.ACC_STATIC | Opcodes.ACC_SYNTHETIC,",
+    "MethodNode(partAccessFlags(owner),",
+)
+patch(
+    "compiler/splitter/src/fabricaot/split/MethodSplitter.java",
+    "new FieldNode(Opcodes.ACC_PRIVATE | Opcodes.ACC_STATIC | Opcodes.ACC_SYNTHETIC,",
+    "new FieldNode(spillFieldAccessFlags(owner),",
+    every=True,
+)
 # 7. The iPadOS pointer bridge (fix/ipados-mouse-trackpad-look) uses Swift-style dot syntax
 #    in Objective-C, which clang rejects: NSThread.isMainThread -> [NSThread isMainThread].
 patch(
