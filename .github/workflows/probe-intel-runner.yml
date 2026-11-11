@@ -1,0 +1,49 @@
+name: probe-intel-runner
+
+on:
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: macos-15-intel
+    timeout-minutes: 40
+    steps:
+      - name: Host facts
+        run: |
+          set -euo pipefail
+          uname -m; sysctl -n hw.ncpu
+          sysctl -n hw.memsize | awk '{printf "memory: %.1f GiB\n", $1/1073741824}'
+          df -h / | tail -1
+          xcode-select -p; xcodebuild -version | head -2
+
+  aot:
+    runs-on: macos-15-intel
+    timeout-minutes: 40
+    steps:
+      - name: Fetch GraalVM for macos-x64
+        run: |
+          set -euo pipefail
+          curl -fsSL -o g.tgz \
+            https://github.com/graalvm/graalvm-ce-builds/releases/download/jdk-25.0.2/graalvm-community-jdk-25.0.2_macos-x64_bin.tar.gz
+          mkdir -p gn && tar -xzf g.tgz -C gn --strip-components=1
+          ./gn/Contents/Home/bin/java -version
+          ./gn/Contents/Home/bin/native-image --version
+
+      - name: Can this host emit an IOS_AARCH64 relocatable object
+        run: |
+          set +e
+          mkdir -p t out
+          cat > t/Probe.java <<'JAVA'
+          public class Probe { public static void main(String[] a) { System.out.println("x64->ios " + a.length); } }
+          JAVA
+          ./gn/Contents/Home/bin/javac -d t t/Probe.java
+          ./gn/Contents/Home/bin/native-image \
+            --no-fallback -O1 --parallelism=2 \
+            -J-Xmx3g \
+            -H:+UnlockExperimentalVMOptions -H:-CheckToolchain \
+            -H:+ExitAfterRelocatableImageWrite -H:PageSize=16384 \
+            -Dsvm.targetName=iOS -Dsvm.targetArch=arm64 \
+            -Dsvm.platform=org.graalvm.nativeimage.Platform\$IOS_AARCH64 \
+            -cp t Probe -o out/probe 2>&1 | tail -25
+          echo "exit=$?"
+          find . -name '*.o' | head
