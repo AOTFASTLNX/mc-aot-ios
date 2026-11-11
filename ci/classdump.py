@@ -13,15 +13,14 @@ ACC_NAMES = [
 
 
 def flags(value: int) -> str:
-    names = [name for bit, name in ACC_NAMES if value & bit]
-    return f"0x{value:04x} ({' '.join(names)})"
+    return f"0x{value:04x} ({' '.join(n for b, n in ACC_NAMES if value & b)})"
 
 
-def parse(data: bytes):
-    offset = 8
+def read_pool(data: bytes):
+    offset = 8  # magic(4) minor(2) major(2)
     count = struct.unpack_from(">H", data, offset)[0]
     offset += 2
-    pool = [None] * count
+    pool: list = [None] * count
     index = 1
     while index < count:
         tag = data[offset]
@@ -29,11 +28,17 @@ def parse(data: bytes):
         if tag == 1:
             length = struct.unpack_from(">H", data, offset)[0]
             offset += 2
-            pool[index] = data[offset:offset + length].decode("utf-8", "replace")
+            pool[index] = ("utf8", data[offset:offset + length].decode("utf-8", "replace"))
             offset += length
-        elif tag in (7, 8, 16, 19, 20):
+        elif tag == 7:
+            pool[index] = ("class", struct.unpack_from(">H", data, offset)[0])
             offset += 2
-        elif tag in (15,):
+        elif tag == 8:
+            pool[index] = ("string", struct.unpack_from(">H", data, offset)[0])
+            offset += 2
+        elif tag in (16, 19, 20):
+            offset += 2
+        elif tag == 15:
             offset += 3
         elif tag in (3, 4, 9, 10, 11, 12, 17, 18):
             offset += 4
@@ -41,23 +46,34 @@ def parse(data: bytes):
             offset += 8
             index += 1
         else:
-            raise SystemExit(f"unknown constant pool tag {tag}")
+            raise SystemExit(f"unknown constant pool tag {tag} at {index}")
         index += 1
+    return pool, offset
 
+
+def name_of(pool, ref) -> str:
+    kind, value = pool[ref]
+    if kind == "class":
+        return pool[value][1]
+    return pool[value][1]
+
+
+def parse(data: bytes) -> None:
+    pool, offset = read_pool(data)
     access, this_class, _super = struct.unpack_from(">HHH", data, offset)
     offset += 6
     interfaces = struct.unpack_from(">H", data, offset)[0]
     offset += 2 + interfaces * 2
     fields = struct.unpack_from(">H", data, offset)[0]
     offset += 2
-    print(f"class {pool[pool[this_class]]} flags {flags(access)} fields={fields}")
+    print(f"  class {name_of(pool, this_class)} flags {flags(access)} fields={fields}")
     for _ in range(fields):
         f_access, f_name, _f_desc, attrs = struct.unpack_from(">HHHH", data, offset)
         offset += 8
         for _ in range(attrs):
-            _name, length = struct.unpack_from(">HI", data, offset)
+            _n, length = struct.unpack_from(">HI", data, offset)
             offset += 6 + length
-        print(f"  {pool[f_name]:40s} {flags(f_access)}")
+        print(f"    {pool[f_name][1]:45s} {flags(f_access)}")
 
 
 def main() -> int:
