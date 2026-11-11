@@ -180,6 +180,15 @@ jobs:
             --classpath-file /tmp/cp.txt
           python3 -c "import json;d=json.load(open('artifacts/ci/split-report.json'));print('split:',d.get('status'),d.get('rewrittenClasses'),d.get('splitMethods'),d.get('parts'))"
 
+      - name: Ensure pinned ASM jars
+        run: |
+          set -euo pipefail
+          cd src
+          if [ ! -f .cache/libs/asm-9.9/asm-9.9.jar ] || [ ! -f .cache/libs/asm-9.9/asm-tree-9.9.jar ]; then
+            python3 -B tools/build_method_splitter.py --output artifacts/ci/splitter-bootstrap --fetch-missing
+          fi
+          ls .cache/libs/asm-9.9
+
       - name: Inject Metal backend
         run: |
           set -euo pipefail

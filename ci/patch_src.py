@@ -122,11 +122,11 @@ patch(
 )
 patch(
     "tools/probe_client_graph.py",
-    '    if args.builder_gc=="g1":',
-    '    if args.builder_gc=="serial":\n'
-    '        cmd[cmd.index("-J-XX:-UsePerfData"):cmd.index("-J-XX:-UsePerfData")]=[\n'
-    '        "-J-XX:-UseParallelGC","-J-XX:+UseSerialGC"]\n'
-    '    if args.builder_gc=="g1":',
+    '        if args.builder_gc=="g1":',
+    '        if args.builder_gc=="serial":\n'
+    '            cmd[cmd.index("-J-XX:-UsePerfData"):cmd.index("-J-XX:-UsePerfData")]=[\n'
+    '                "-J-XX:-UseParallelGC","-J-XX:+UseSerialGC"]\n'
+    '        if args.builder_gc=="g1":',
 )
 
 print("all patches applied")
