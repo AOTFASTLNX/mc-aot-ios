@@ -163,11 +163,11 @@ devices = json.loads(simctl("list", "devices", "-j"))["devices"]
 for runtime_id, entries in devices.items():
     if runtime_id != runtime["identifier"]:
         continue
-    phones = [d for d in entries if d.get("isAvailable") and "iPhone" in d.get("name", "")]
+    phones = [d for d in entries if d.get("isAvailable") and "iPhone" in d.get("name", "") and "Duo" not in d.get("name", "")]
     if phones:
         print(phones[0]["udid"], end="")
         sys.exit(0)
-types = [t for t in runtime.get("supportedDeviceTypes", []) if "iPhone" in t.get("name", "")]
+types = [t for t in runtime.get("supportedDeviceTypes", []) if "iPhone" in t.get("name", "") and "Duo" not in t.get("name", "")]
 if not types:
     print("", end="")
     sys.exit(0)
@@ -177,7 +177,7 @@ PY
 )
 [ -n "$UDID" ] || die "no usable simulator"
 log "simulator $UDID"
-xcrun simctl bootstatus "$UDID" -b
+xcrun simctl bootstatus "$UDID" -b || log "boot status did not report ready; continuing"
 xcrun simctl install "$UDID" "$APP"
 BUNDLE=$(/usr/libexec/PlistBuddy -c 'Print CFBundleIdentifier' "$APP/Info.plist")
 DATA=$(xcrun simctl get_app_container "$UDID" "$BUNDLE" data)
