@@ -102,4 +102,15 @@ patch(
 #    binding constraint. The 7 GiB wall is the live set (4.00 GB after full GC), not the
 #    JVM's native overhead, so no flag wins here.
 
+# 6. The analysis live set (4.00 GB after full GC) is what kills the 7 GiB runner, so use
+#    GraalVM's own analysis-time memory reduction: drop saturated type flows instead of
+#    keeping them, and lower the saturation cutoff so big methods saturate earlier. Both
+#    exist in this GraalVM's svm jars (checked) but are not listed in --help.
+patch(
+    "tools/probe_client_graph.py",
+    '"-J-Duser.home="+str(work/"home"),"-J-Djava.io.tmpdir="+str(work/"tmp"),"-H:+UnlockExperimentalVMOptions",',
+    '"-J-Duser.home="+str(work/"home"),"-J-Djava.io.tmpdir="+str(work/"tmp"),"-H:+UnlockExperimentalVMOptions",'
+    '"-H:+RemoveSaturatedTypeFlows","-H:TypeFlowSaturationCutoff=4000",',
+)
+
 print("all patches applied")
