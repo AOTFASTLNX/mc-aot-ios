@@ -10,10 +10,12 @@ change fails loudly instead of silently patching the wrong thing.
 """
 from __future__ import annotations
 
+import os
 import sys
 from pathlib import Path
 
 SRC = Path(sys.argv[1] if len(sys.argv) > 1 else "src").resolve()
+FAILURES: list[str] = []
 
 
 def patch(rel: str, old: str, new: str, optional: bool = False) -> None:
@@ -24,7 +26,12 @@ def patch(rel: str, old: str, new: str, optional: bool = False) -> None:
         print(f"skip {rel}: upstream no longer contains that text")
         return
     if count != 1:
-        raise SystemExit(f"{rel}: expected exactly 1 occurrence, found {count}:\n{old[:200]}")
+        message = f"{rel}: expected exactly 1 occurrence, found {count}:\n{old[:200]}"
+        if os.environ.get("PATCH_KEEP_GOING"):
+            FAILURES.append(message)
+            print(message)
+            return
+        raise SystemExit(message)
     path.write_text(text.replace(old, new))
     print(f"patched {rel}")
 
@@ -63,6 +70,16 @@ patch(
     "    aar = _shutil.which('aar')\n"
     "    if not aar: raise SystemExit('aar shim missing from PATH')\n"
     "    command=[sys.executable,'-B',str(Path(__file__).resolve()),'--cache-only']",
+    optional=True,
+)
+patch(
+    "tools/prepare_shader_toolchain.py",
+    "    aar=str(Path.home() / 'Documents/Codex/monitor/bin/aar');command=[sys.executable,'-B',str(Path(__file__).resolve()),'--cache-only']",
+    "    import shutil as _shutil\n"
+    "    aar = _shutil.which('aar')\n"
+    "    if not aar: raise SystemExit('aar shim missing from PATH')\n"
+    "    command=[sys.executable,'-B',str(Path(__file__).resolve()),'--cache-only']",
+    optional=True,
 )
 
 # 3b. cmake's compiler probe writes scratch files under TMPDIR, which the seatbelt profile
@@ -144,4 +161,6 @@ patch(
     '        if args.builder_gc=="g1":',
 )
 
+if FAILURES:
+    raise SystemExit(f"{len(FAILURES)} patch(es) no longer match upstream")
 print("all patches applied")
