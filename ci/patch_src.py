@@ -204,6 +204,16 @@ patch(
     "new FieldNode(spillFieldAccessFlags(owner),",
     every=True,
 )
+# 6f. Splitting an interface's <clinit> into synthetic static helpers is rejected at run time by
+#     Substrate VM (IllegalAccessError on EnvironmentAttributes.fabricaot$init$1), even with public
+#     helpers. Interfaces are therefore left intact.
+patch(
+    "compiler/splitter/src/fabricaot/split/MethodSplitter.java",
+    "        for (MethodNode method : original) {\n            if (!isCandidate(method)) {",
+    "        for (MethodNode method : original) {\n"
+    "            if ((node.access & Opcodes.ACC_INTERFACE) != 0) { break; }  // interface helpers are rejected at run time\n"
+    "            if (!isCandidate(method)) {",
+)
 # 7. The iPadOS pointer bridge (fix/ipados-mouse-trackpad-look) uses Swift-style dot syntax
 #    in Objective-C, which clang rejects: NSThread.isMainThread -> [NSThread isMainThread].
 patch(
