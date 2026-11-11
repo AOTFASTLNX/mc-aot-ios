@@ -116,7 +116,7 @@ time python3 -B tools/probe_client_graph.py \
   --b1-evidence artifacts/evidence/b1-user-device-run-01/result.json \
   --client-jar artifacts/ci/injected/client-26.1.2-metal.jar \
   --graphics-bridge artifacts/sim/lwjgl --metal-bootstrap artifacts/sim/metal \
-  --full-build --include-game-resources --heap-gib "$HEAP_GIB" --parallelism "$AOT_PAR" \
+  --full-build --relocatable --include-game-resources --heap-gib "$HEAP_GIB" --parallelism "$AOT_PAR" \
   --output artifacts/ci/aot
 
 log "link for the simulator"
