@@ -219,12 +219,16 @@ for i in $(seq 1 20); do
 done
 [ -n "$DATA" ] || die "cannot locate the installed app container"
 log "data container: $DATA"
+log "seeding the app container"
 mkdir -p "$DATA/Documents"
 if [ ! -d "$DATA/Documents/assets" ]; then
-  cp -R artifacts/graphics/game-assets-01/assets "$DATA/Documents/assets"
+  log "copying assets ($(du -sh artifacts/graphics/game-assets-01/assets | cut -f1))"
+  cp -R artifacts/graphics/game-assets-01/assets "$DATA/Documents/assets" || die "asset copy failed"
 fi
+log "assets in place: $(du -sh "$DATA/Documents/assets" 2>/dev/null | cut -f1)"
 mkdir -p "$DATA/Documents/game"
 printf 'renderDistance:8\nsimulationDistance:5\nmaxFps:30\n' > "$DATA/Documents/game/options.txt"
+log "options written"
 BEFORE=$(ls "$DATA/Documents/c0-logs" 2>/dev/null | wc -l)
 xcrun simctl launch "$UDID" "$BUNDLE" || true
 for i in $(seq 1 60); do
