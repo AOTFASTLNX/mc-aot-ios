@@ -44,8 +44,6 @@ public final class VerifyClasses {
                     loaded++;
                 } catch (ClassFormatError | VerifyError error) {
                     broken.add(binary + " -> " + error);
-                } catch (UnsupportedClassVersionError error) {
-                    broken.add(binary + " -> " + error);
                 } catch (Throwable expected) {
                     skipped++;
                 }

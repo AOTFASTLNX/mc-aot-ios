@@ -169,7 +169,7 @@ if [ -f "$VERIFY" ]; then
   log "verify: load every class in the split jar with the real JVM"
   CP=$(cat /tmp/cp.txt)
   if [ ! -f "$WORK/verify-classes" ]; then
-    "$GRAALVM_HOME/bin/javac" -d "$WORK/verify" "$VERIFY" || true
+    "$GRAALVM_HOME/bin/javac" -d "$WORK/verify" "$VERIFY"
     cp -R "$WORK/verify" "$WORK/verify-classes" 2>/dev/null || true
   fi
   "$GRAALVM_HOME/bin/java" -cp "$WORK/verify" VerifyClasses artifacts/ci/client-split.jar $CP || \
