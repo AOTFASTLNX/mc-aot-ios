@@ -151,31 +151,38 @@ log "app: $APP"
 log "simulator run"
 UDID=$(python3 - <<'PY'
 import json, subprocess, sys
+
 def simctl(*args):
-    return subprocess.run(["xcrun", "simctl", *args], capture_output=True, text=True, check=True).stdout
+    return subprocess.run(["xcrun", "simctl", *args], capture_output=True, text=True).stdout
+
 runtimes = json.loads(simctl("list", "runtimes", "-j"))["runtimes"]
 usable = [r for r in runtimes if r.get("isAvailable") and "iOS" in r.get("identifier", "")]
+print("# runtimes:", [r["identifier"] for r in usable], file=sys.stderr)
 if not usable:
-    print("", end="")
     sys.exit(0)
-runtime = usable[-1]
+runtime = usable[-1]["identifier"]
+
 devices = json.loads(simctl("list", "devices", "-j"))["devices"]
 for runtime_id, entries in devices.items():
-    if runtime_id != runtime["identifier"]:
+    if runtime_id != runtime:
         continue
-    phones = [d for d in entries if d.get("isAvailable") and "iPhone" in d.get("name", "") and "Duo" not in d.get("name", "")]
-    if phones:
-        print(phones[0]["udid"], end="")
+    for device in entries:
+        name = device.get("name", "")
+        if device.get("isAvailable") and "iPhone" in name and "Duo" not in name:
+            print(device["udid"], end="")
+            sys.exit(0)
+
+types = json.loads(simctl("list", "devicetypes", "-j"))["devicetypes"]
+candidates = [d["identifier"] for d in types
+              if "iPhone" in d.get("name", "") and "Duo" not in d.get("name", "")]
+print("# device types:", candidates[:5], file=sys.stderr)
+for identifier in candidates:
+    created = simctl("create", "mcfao-sim", identifier, runtime).strip()
+    if created and "-" in created:
+        print(created, end="")
         sys.exit(0)
-types = [t for t in runtime.get("supportedDeviceTypes", []) if "iPhone" in t.get("name", "") and "Duo" not in t.get("name", "")]
-if not types:
-    print("", end="")
-    sys.exit(0)
-created = simctl("create", "mcfao-sim", types[0]["identifier"], runtime["identifier"]).strip()
-print(created, end="")
 PY
-)
-[ -n "$UDID" ] || die "no usable simulator"
+)[ -n "$UDID" ] || die "no usable simulator"
 log "simulator $UDID"
 xcrun simctl bootstatus "$UDID" -b || log "boot status did not report ready; continuing"
 xcrun simctl install "$UDID" "$APP"
