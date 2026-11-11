@@ -164,6 +164,17 @@ if [ -f "$DUMP" ]; then
   python3 "$DUMP" artifacts/ci/client-split.jar EnvironmentAttributes || true
   python3 "$DUMP" artifacts/ci/injected/client-26.1.2-metal.jar EnvironmentAttributes || true
 fi
+VERIFY="$WORK/repo/ci/VerifyClasses.java"
+if [ -f "$VERIFY" ]; then
+  log "verify: load every class in the split jar with the real JVM"
+  CP=$(cat /tmp/cp.txt)
+  if [ ! -f "$WORK/verify-classes" ]; then
+    "$GRAALVM_HOME/bin/javac" -d "$WORK/verify" "$VERIFY" || true
+    cp -R "$WORK/verify" "$WORK/verify-classes" 2>/dev/null || true
+  fi
+  "$GRAALVM_HOME/bin/java" -cp "$WORK/verify" VerifyClasses artifacts/ci/client-split.jar $CP || \
+    log "WARNING: class verification reported problems (see above)"
+fi
 log "stage 4b: inject Metal backend"
 time python3 -B tools/inject_metal_backend.py --client artifacts/ci/client-split.jar \
   --output artifacts/ci/injected --graalvm-home "$GRAALVM_HOME" \
