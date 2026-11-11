@@ -105,7 +105,7 @@ patch(
     'f"-J-Xmx{args.heap_gib}g","-J-XX:-UsePerfData",',
     'f"-J-Xmx{args.heap_gib}g","-J-XX:-UsePerfData",'
     '"-J-XX:MaxMetaspaceSize=384m","-J-XX:ReservedCodeCacheSize=96m",'
-    '"-J-XX:+UseSerialGC","-J-XX:MaxDirectMemorySize=256m",',
+    '"-J-XX:MaxDirectMemorySize=256m",',
 )
 
 print("all patches applied")
