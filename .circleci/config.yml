@@ -1,10 +1,10 @@
 version: 2.1
 
 jobs:
-  probe-large:
+  probe:
     macos:
-      xcode: 26.2.0
-    resource_class: macos.m1.large.gen1
+      xcode: 27.1.0
+    resource_class: m4pro.medium
     steps:
       - run:
           name: Host facts
@@ -12,9 +12,14 @@ jobs:
             uname -m
             sysctl -n hw.ncpu
             sysctl -n hw.memsize | awk '{printf "memory: %.1f GiB\n", $1/1073741824}'
-            xcodebuild -version | head -2
+            sw_vers
+            xcodebuild -version
+            xcrun --sdk iphoneos --show-sdk-version
+            command -v python3 && python3 -V
+            command -v brew && brew --version | head -1
+            df -h / | tail -1
 
 workflows:
   probe-workflow:
     jobs:
-      - probe-large
+      - probe
