@@ -152,6 +152,13 @@ time python3 -B tools/split_methods.py \
   --min-sites 200 --target-sites 64 --max-parts 64 --trigger-cost 50000 \
   --classpath-file /tmp/cp.txt
 
+DUMP="$WORK/repo/ci/classdump.py"
+if [ -f "$DUMP" ]; then
+  log "diagnostic: EnvironmentAttributes field flags"
+  python3 "$DUMP" artifacts/ci/mc/meta/versions/26.1.2/26.1.2.jar EnvironmentAttributes || true
+  python3 "$DUMP" artifacts/ci/client-split.jar EnvironmentAttributes || true
+  python3 "$DUMP" artifacts/ci/injected/client-26.1.2-metal.jar EnvironmentAttributes || true
+fi
 log "stage 4b: inject Metal backend"
 time python3 -B tools/inject_metal_backend.py --client artifacts/ci/client-split.jar \
   --output artifacts/ci/injected --graalvm-home "$GRAALVM_HOME" \
