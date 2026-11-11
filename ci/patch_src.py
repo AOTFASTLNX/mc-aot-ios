@@ -97,15 +97,9 @@ patch(
     "if args.heap_gib*1024**3 > int(physical.group(1))*0.95 or int(free.group(1)) < (45 if args.heap_gib==8 else 35):",
 )
 
-# 6. Give the builder JVM a smaller native footprint so a 5 GiB heap has real headroom on
-#    a 7 GiB host: cap metaspace/code cache/direct buffers and use the collector with the
-#    least auxiliary memory. This does not change what the image computes.
-patch(
-    "tools/probe_client_graph.py",
-    'f"-J-Xmx{args.heap_gib}g","-J-XX:-UsePerfData",',
-    'f"-J-Xmx{args.heap_gib}g","-J-XX:-UsePerfData",'
-    '"-J-XX:MaxMetaspaceSize=384m","-J-XX:ReservedCodeCacheSize=96m",'
-    '"-J-XX:MaxDirectMemorySize=256m",',
-)
+# 6. (removed) Capping the builder JVM's metaspace/code cache made native-image die with
+#    exit 3 in 10 s at 1 GB RSS — the caps starve the builder long before memory is the
+#    binding constraint. The 7 GiB wall is the live set (4.00 GB after full GC), not the
+#    JVM's native overhead, so no flag wins here.
 
 print("all patches applied")
