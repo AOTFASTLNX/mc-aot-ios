@@ -182,7 +182,8 @@ for identifier in candidates:
         print(created, end="")
         sys.exit(0)
 PY
-)[ -n "$UDID" ] || die "no usable simulator"
+)
+[ -n "$UDID" ] || die "no usable simulator"
 log "simulator $UDID"
 xcrun simctl bootstatus "$UDID" -b || log "boot status did not report ready; continuing"
 xcrun simctl install "$UDID" "$APP"
