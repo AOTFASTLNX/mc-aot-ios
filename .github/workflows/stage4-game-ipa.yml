@@ -65,12 +65,14 @@ jobs:
           fi
           echo "XCODE=$XC"
           ls /Applications | grep -i xcode || true
-          sudo ln -sfn "$XC" /Applications/Xcode.app
-          sudo xcode-select -s "$XC"
+          if [ ! -e /Applications/Xcode.app ]; then
+            sudo -n ln -sfn "$XC" /Applications/Xcode.app || echo "cannot link Xcode.app (needs sudo); continuing"
+          fi
+          sudo -n xcode-select -s "$XC" || echo "cannot switch xcode-select (needs sudo); using the current one"
           xcode-select -p
           if ! xcrun -f metal >/dev/null 2>&1; then
             echo "metal toolchain missing; downloading"
-            sudo xcodebuild -downloadComponent MetalToolchain || true
+            sudo -n xcodebuild -downloadComponent MetalToolchain || xcodebuild -downloadComponent MetalToolchain || true
             xcrun -f metal || true
           fi
 
