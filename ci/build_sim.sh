@@ -205,7 +205,20 @@ set -e
 log "install rc=$INSTALL_RC: $INSTALL_OUT"
 [ "$INSTALL_RC" -eq 0 ] || die "simctl install failed"
 BUNDLE=$(/usr/libexec/PlistBuddy -c 'Print CFBundleIdentifier' "$APP/Info.plist")
-DATA=$(xcrun simctl get_app_container "$UDID" "$BUNDLE" data)
+log "bundle id: $BUNDLE"
+DATA=""
+for i in $(seq 1 20); do
+  set +e
+  DATA=$(xcrun simctl get_app_container "$UDID" "$BUNDLE" data 2>&1)
+  RC=$?
+  set -e
+  if [ "$RC" -eq 0 ] && [ -d "$DATA" ]; then break; fi
+  log "get_app_container rc=$RC: $DATA"
+  DATA=""
+  sleep 2
+done
+[ -n "$DATA" ] || die "cannot locate the installed app container"
+log "data container: $DATA"
 mkdir -p "$DATA/Documents"
 if [ ! -d "$DATA/Documents/assets" ]; then
   cp -R artifacts/graphics/game-assets-01/assets "$DATA/Documents/assets"
