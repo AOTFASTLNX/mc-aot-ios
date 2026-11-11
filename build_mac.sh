@@ -213,6 +213,6 @@ mkdir -p dist/Payload
 cp -R "$APP" dist/Payload/
 (cd dist && /usr/bin/zip -qry "$WORK/FabricAOT-game.ipa" Payload)
 /usr/bin/shasum -a 256 "$WORK/FabricAOT-game.ipa"
-du -sh "$WORK/dist/Payload"
+du -sh dist/Payload || true
 
 log "DONE: $WORK/FabricAOT-game.ipa"
