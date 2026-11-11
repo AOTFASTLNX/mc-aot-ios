@@ -165,8 +165,9 @@ patch(
     '        NSString *assets = [NSBundle.mainBundle.resourcePath stringByAppendingPathComponent:@"assets"];',
     '        NSString *staged = [FAOTDocuments() stringByAppendingPathComponent:@"assets"];\n'
     '        NSString *bundled = [NSBundle.mainBundle.resourcePath stringByAppendingPathComponent:@"assets"];\n'
-    '        NSString *assets = [[NSFileManager.defaultManager fileExistsAtPath:\n'
-    '            [staged stringByAppendingPathComponent:@"indexes/30.json"]] ? staged : bundled;\n',
+    '        BOOL stagedReady = [NSFileManager.defaultManager fileExistsAtPath:\n'
+    '            [staged stringByAppendingPathComponent:@"indexes/30.json"]];\n'
+    '        NSString *assets = stagedReady ? staged : bundled;\n',
     optional=True,
 )
 # 7. The iPadOS pointer bridge (fix/ipados-mouse-trackpad-look) uses Swift-style dot syntax
