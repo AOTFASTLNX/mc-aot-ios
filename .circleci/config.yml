@@ -10,6 +10,7 @@ jobs:
       PYTHONDONTWRITEBYTECODE: "1"
       UPSTREAM: https://github.com/AOTFASTLNX/MCFAO
       SOURCE_REF: feature/launcher-controls
+      MCFAO_OPT_LEVEL: -O3
     steps:
       - run:
           name: Host facts
