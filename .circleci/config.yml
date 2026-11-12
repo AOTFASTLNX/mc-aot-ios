@@ -24,8 +24,17 @@ jobs:
             curl -fsSL -o build_sim.sh https://raw.githubusercontent.com/zhangrongxue/mc-aot-ios/main/ci/build_sim.sh
             MCFAO_TOKEN="$MCFAO_TOKEN" bash build_sim.sh
       - store_artifacts:
-          path: ~/mcfao-sim
-          destination: sim
+          path: ~/mcfao-sim/sim-165s.jpg
+          destination: sim-165s.jpg
+      - store_artifacts:
+          path: ~/mcfao-sim/sim-45s.jpg
+          destination: sim-45s.jpg
+      - store_artifacts:
+          path: ~/mcfao-sim/latest.log
+          destination: latest.log
+      - store_artifacts:
+          path: ~/mcfao-sim/c0-logs
+          destination: c0-logs
       - run:
           name: Tail on failure
           when: on_fail

@@ -254,6 +254,11 @@ sleep 60
 xcrun simctl io "$UDID" screenshot "$WORK/sim-105s.png" || true
 sleep 60
 xcrun simctl io "$UDID" screenshot "$WORK/sim-165s.png" || true
+for shot in "$WORK"/sim*.png; do
+  [ -f "$shot" ] && sips -s format jpeg -s formatOptions 65 "$shot" --out "${shot%.png}.jpg" >/dev/null 2>&1 || true
+done
+cp "$DATA/Documents/game/logs/latest.log" "$WORK/latest.log" 2>/dev/null || true
+ls -la "$WORK"/*.jpg 2>/dev/null || true
 NEWEST=$(ls -t "$DATA/Documents/c0-logs"/*.log 2>/dev/null | head -1 || true)
 if [ -n "${NEWEST:-}" ]; then
   log "c0 log: $(basename "$NEWEST")"
