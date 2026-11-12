@@ -138,9 +138,15 @@ for lib in libglfw liblwjgl libfaot_metal libopenal; do
   f=$(ls artifacts/sim/*/${lib}.dylib 2>/dev/null | head -1)
   [ -n "$f" ] && cp "$f" "$STAGED/"
 done
-cp artifacts/sim/metal/fabricaot-present.metallib "$STAGED/" 2>/dev/null || true
-cp -R artifacts/sim/shaders/fabricaot-shaders "$STAGED/" 2>/dev/null || true
-ls -la "$STAGED"
+METALLIB=$(find artifacts/sim/metal -name 'fabricaot-present.metallib' | head -1)
+[ -n "$METALLIB" ] || die "metallib missing"
+cp "$METALLIB" "$STAGED/fabricaot-present.metallib"
+SHADER_INDEX=$(find artifacts/sim/shaders -name 'index.json' | head -1)
+[ -n "$SHADER_INDEX" ] || die "shader bundle missing"
+cp -R "$(dirname "$SHADER_INDEX")" "$STAGED/fabricaot-shaders"
+[ -f "$STAGED/fabricaot-shaders/index.json" ] || die "shader bundle layout unexpected"
+log "staged: $(ls "$STAGED" | tr '\n' ' ')"
+log "shader entries: $(ls "$STAGED/fabricaot-shaders" | wc -l)"
 
 DERIVED="$WORK/DerivedData"
 xcodebuild -project ios/C0Harness/C0Harness.xcodeproj -scheme WorldSimulator \
