@@ -214,6 +214,19 @@ patch(
     "            if ((node.access & Opcodes.ACC_INTERFACE) != 0) { break; }  // interface helpers are rejected at run time\n"
     "            if (!isCandidate(method)) {",
 )
+# 8. probe_client_graph reads MCFAO_OPT_LEVEL for the native-image optimisation level.
+patch(
+    "tools/probe_client_graph.py",
+    "from argparse import ArgumentParser",
+    "import os\nfrom argparse import ArgumentParser",
+    optional=True,
+)
+patch(
+    "tools/probe_client_graph.py",
+    "import argparse",
+    "import argparse\nimport os",
+    optional=True,
+)
 # 7. The iPadOS pointer bridge (fix/ipados-mouse-trackpad-look) uses Swift-style dot syntax
 #    in Objective-C, which clang rejects: NSThread.isMainThread -> [NSThread isMainThread].
 patch(
