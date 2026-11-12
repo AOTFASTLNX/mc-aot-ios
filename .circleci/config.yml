@@ -30,6 +30,9 @@ jobs:
           path: ~/mcfao-sim/sim-45s.jpg
           destination: sim-45s.jpg
       - store_artifacts:
+          path: ~/mcfao-sim/sim-click1.jpg
+          destination: sim-click1.jpg
+      - store_artifacts:
           path: ~/mcfao-sim/latest.log
           destination: latest.log
       - store_artifacts:
