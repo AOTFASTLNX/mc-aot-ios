@@ -242,11 +242,18 @@ log "options written"
 mkdir -p "$DATA/Documents/c0-logs"
 BEFORE=$(ls "$DATA/Documents/c0-logs" 2>/dev/null | wc -l || true)
 xcrun simctl launch "$UDID" "$BUNDLE" || true
-for i in $(seq 1 60); do
+for i in $(seq 1 100); do
   sleep 3
   NOW=$(ls "$DATA/Documents/c0-logs" 2>/dev/null | wc -l || true)
   if [ "$NOW" -gt "$BEFORE" ]; then break; fi
 done
+log "waiting for the client to finish loading"
+sleep 45
+xcrun simctl io "$UDID" screenshot "$WORK/sim-45s.png" || true
+sleep 60
+xcrun simctl io "$UDID" screenshot "$WORK/sim-105s.png" || true
+sleep 60
+xcrun simctl io "$UDID" screenshot "$WORK/sim-165s.png" || true
 NEWEST=$(ls -t "$DATA/Documents/c0-logs"/*.log 2>/dev/null | head -1 || true)
 if [ -n "${NEWEST:-}" ]; then
   log "c0 log: $(basename "$NEWEST")"
