@@ -257,8 +257,22 @@ xcrun simctl io "$UDID" screenshot "$WORK/sim-165s.png" || true
 for shot in "$WORK"/sim*.png; do
   [ -f "$shot" ] && sips -s format jpeg -s formatOptions 65 "$shot" --out "${shot%.png}.jpg" >/dev/null 2>&1 || true
 done
-log "trying to click Singleplayer in the simulator window"
+log "opening the Simulator UI to click Singleplayer"
+open -a Simulator --args -CurrentDeviceUDID "$UDID" || true
+sleep 12
 osascript <<'APPLESCRIPT' || log "osascript click failed"
+tell application "System Events"
+  tell process "Simulator"
+    set frontmost to true
+    set {wx, wy} to position of window 1
+    set {ww, wh} to size of window 1
+    set clickX to wx + (ww / 2)
+    set clickY to wy + 28 + ((wh - 28) * 0.365)
+    click at {clickX, clickY}
+    return "clicked at " & clickX & "," & clickY & " window " & wx & "," & wy & " size " & ww & "x" & wh
+  end tell
+end tell
+APPLESCRIPT
 tell application "Simulator" to activate
 delay 3
 tell application "System Events"
