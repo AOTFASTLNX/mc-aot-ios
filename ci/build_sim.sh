@@ -273,20 +273,6 @@ tell application "System Events"
   end tell
 end tell
 APPLESCRIPT
-tell application "Simulator" to activate
-delay 3
-tell application "System Events"
-  tell process "Simulator"
-    set frontmost to true
-    set {wx, wy} to position of window 1
-    set {ww, wh} to size of window 1
-    set clickX to wx + (ww / 2)
-    set clickY to wy + (wh * 0.53)
-    click at {clickX, clickY}
-    return "clicked at " & clickX & "," & clickY & " window " & wx & "," & wy & " " & ww & "x" & wh
-  end tell
-end tell
-APPLESCRIPT
 sleep 10
 xcrun simctl io "$UDID" screenshot "$WORK/sim-click1.png" || true
 sips -s format jpeg -s formatOptions 65 "$WORK/sim-click1.png" --out "$WORK/sim-click1.jpg" >/dev/null 2>&1 || true
