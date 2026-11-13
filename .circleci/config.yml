@@ -9,7 +9,7 @@ jobs:
       HOMEBREW_NO_AUTO_UPDATE: 1
       PYTHONDONTWRITEBYTECODE: "1"
       UPSTREAM: https://github.com/AOTFASTLNX/MCFAO
-      SOURCE_REF: feature/performance-launcher-size-2026-11-13
+      SOURCE_REF: 4e7d377a6c62cdbc70b2f9e0e89787d415ebea16
       MCFAO_OPT_LEVEL: -O3
     steps:
       - run:
