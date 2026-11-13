@@ -9,7 +9,7 @@ jobs:
       HOMEBREW_NO_AUTO_UPDATE: 1
       PYTHONDONTWRITEBYTECODE: "1"
       UPSTREAM: https://github.com/AOTFASTLNX/MCFAO
-      SOURCE_REF: main
+      SOURCE_REF: fix/v21-baseline-input-layout
       MCFAO_OPT_LEVEL: -O3
     steps:
       - run:
@@ -23,9 +23,9 @@ jobs:
           command: |
             set -euo pipefail
             mkdir -p ~/build && cd ~/build
-            curl -fsSL -o build_mac.sh https://raw.githubusercontent.com/AOTFASTLNX/MCFAO/d7468f22e558a6488a451e5b454a1ca8920cd50a/ci/build_mac.sh
+            curl -fsSL -o build_mac.sh https://raw.githubusercontent.com/AOTFASTLNX/MCFAO/47ba478876e3b74a981965328bbda9de42726023/ci/build_mac.sh
             MCFAO_TOKEN="$MCFAO_TOKEN" HEAP_GIB=8 JOBS=6 AOT_PAR=4 SLIM_ASSETS=0 \
-              UPSTREAM="$UPSTREAM" SOURCE_REF="$SOURCE_REF" SOURCE_SHA=d7468f22e558a6488a451e5b454a1ca8920cd50a bash build_mac.sh
+              UPSTREAM="$UPSTREAM" SOURCE_REF="$SOURCE_REF" SOURCE_SHA=47ba478876e3b74a981965328bbda9de42726023 bash build_mac.sh
       - store_artifacts:
           path: ~/mcfao-build/FabricAOT-game.ipa
           destination: FabricAOT-game.ipa
