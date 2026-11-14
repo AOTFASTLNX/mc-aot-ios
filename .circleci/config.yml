@@ -9,7 +9,7 @@ jobs:
       HOMEBREW_NO_AUTO_UPDATE: 1
       PYTHONDONTWRITEBYTECODE: "1"
       UPSTREAM: https://github.com/AOTFASTLNX/MCFAO
-      SOURCE_REF: fix/v21-baseline-input-layout
+      SOURCE_REF: fix/recollection3-fabric-pipeline
       MCFAO_OPT_LEVEL: -O3
     steps:
       - run:
@@ -23,9 +23,9 @@ jobs:
           command: |
             set -euo pipefail
             mkdir -p ~/build && cd ~/build
-            curl -fsSL -o build_mac.sh https://raw.githubusercontent.com/AOTFASTLNX/MCFAO/09ce1cdd294ac511af46dcef2e87be820823751e/ci/build_mac.sh
-            MCFAO_TOKEN="$MCFAO_TOKEN" HEAP_GIB=8 JOBS=6 AOT_PAR=4 SLIM_ASSETS=0 \
-              UPSTREAM="$UPSTREAM" SOURCE_REF="$SOURCE_REF" SOURCE_SHA=09ce1cdd294ac511af46dcef2e87be820823751e bash build_mac.sh
+            curl -fsSL -o build_mac.sh https://raw.githubusercontent.com/AOTFASTLNX/MCFAO/f90706cf1d4161ee2acf9661d7a3a9e20603224c/ci/build_mac.sh
+            MCFAO_TOKEN="$MCFAO_TOKEN" FAOT_BUILD_LOADER=fabric FAOT_FETCH_RECOLLECTION3=1 HEAP_GIB=9 JOBS=6 AOT_PAR=4 SLIM_ASSETS=0 \
+              UPSTREAM="$UPSTREAM" SOURCE_REF="$SOURCE_REF" SOURCE_SHA=f90706cf1d4161ee2acf9661d7a3a9e20603224c bash build_mac.sh
       - store_artifacts:
           path: ~/mcfao-build/FabricAOT-game.ipa
           destination: FabricAOT-game.ipa
