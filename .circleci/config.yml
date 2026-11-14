@@ -23,9 +23,9 @@ jobs:
           command: |
             set -euo pipefail
             mkdir -p ~/build && cd ~/build
-            curl -fsSL -o build_mac.sh https://raw.githubusercontent.com/AOTFASTLNX/MCFAO/0d9fe55da189901d6a9d46374b8b7585ccb80952/ci/build_mac.sh
+            curl -fsSL -o build_mac.sh https://raw.githubusercontent.com/AOTFASTLNX/MCFAO/d91dc4f0f6f84be112a2f35b9ad65473967374a0/ci/build_mac.sh
             MCFAO_TOKEN="$MCFAO_TOKEN" FAOT_RENDERER=gl41 FAOT_BUILD_LOADER=vanilla HEAP_GIB=9 JOBS=6 AOT_PAR=4 SLIM_ASSETS=0 \
-              UPSTREAM="$UPSTREAM" SOURCE_REF="$SOURCE_REF" SOURCE_SHA=0d9fe55da189901d6a9d46374b8b7585ccb80952 bash build_mac.sh
+              UPSTREAM="$UPSTREAM" SOURCE_REF="$SOURCE_REF" SOURCE_SHA=d91dc4f0f6f84be112a2f35b9ad65473967374a0 bash build_mac.sh
       - store_artifacts:
           path: ~/mcfao-build/FabricAOT-game.ipa
           destination: FabricAOT-game.ipa
